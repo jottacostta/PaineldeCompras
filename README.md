@@ -4,6 +4,8 @@ Gerenciador web de pedidos de loja para supermercados. O sistema importa localme
 
 Aplicação publicada: <https://jottacostta.github.io/PaineldeCompras/>
 
+Snapshot anterior: [`versoes_anteriores/PaineldeCompras_v1_antes_importacao_arquivos_separados/`](./versoes_anteriores/PaineldeCompras_v1_antes_importacao_arquivos_separados/)
+
 ## Recursos
 
 - Dashboard de ruptura, risco de cobertura, saldo do depósito e fila de pedidos.
