@@ -9,8 +9,8 @@
       content="Gerenciador de pedidos de loja com leitura local de planilhas ERP."
     />
     <title>Orquestra | Pedidos de Loja</title>
-    <script type="module" crossorigin src="/assets/index-XIxxOlN_.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BW5o9N8w.css">
+    <script type="module" crossorigin src="/assets/index-NRbztoCF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BzkT3SfQ.css">
   </head>
   <body>
     <div class="app-shell">
@@ -85,7 +85,7 @@
                 <p>Envie a base histórica opcional junto das três atualizações; também aceitamos um Excel completo com as abas:</p>
                 <div class="sheet-list">
                   <div><span>0</span><strong>BASE HISTÓRICA</strong><small>setor e classificação de giro do dashboard anterior</small></div>
-                  <div><span>1</span><strong>consolidado3meses</strong><small>venda de 3 meses, MDV e estoque cheio do depósito</small></div>
+                  <div><span>1</span><strong>consolidado3meses</strong><small>(Qtde Venda 3M ÷ 4) ÷ (Dias Venda 3M ÷ 4) = MDV30; também fornece o estoque cheio do depósito</small></div>
                   <div><span>2</span><strong>SALDO</strong><small>saldo disponível, estoque da loja e pedidos pendentes/impressos</small></div>
                   <div><span>3</span><strong>Zerado</strong><small>itens sem estoque na loja com saldo no depósito</small></div>
                 </div>
@@ -94,8 +94,8 @@
 
             <div class="method-strip">
               <div><span class="method-number">01</span><p><strong>Conciliamos produtos</strong><br />pela descrição normalizada; o código fica apenas como referência visual.</p></div>
-              <div><span class="method-number">02</span><p><strong>Projetamos cobertura</strong><br />com venda recente, estoque da loja e entradas já registradas.</p></div>
-              <div><span class="method-number">03</span><p><strong>Limitamos o pedido</strong><br />pelo saldo conservador do depósito para evitar promessas sem atendimento.</p></div>
+              <div><span class="method-number">02</span><p><strong>Projetamos cobertura</strong><br />com o MDV30 calculado do consolidado, estoque da loja e entradas já registradas.</p></div>
+              <div><span class="method-number">03</span><p><strong>Classificamos a cobertura</strong><br />em 0–3 dias crítico, 4–6 dias atenção e acima de 6 dias meta; o pedido não passa de 14 dias.</p></div>
             </div>
           </section>
 
@@ -118,16 +118,16 @@
 
             <section class="settings-strip" aria-label="Parâmetros de abastecimento">
               <div class="settings-label"><span aria-hidden="true">⚙</span><div><strong>Parâmetros do pedido</strong><small>Aplicados em toda a fila atual</small></div></div>
-              <label>Venda curta <input id="shortPeriodInput" type="number" min="1" max="365" value="15" /><small>dias</small></label>
-              <label>Venda longa <input id="longPeriodInput" type="number" min="1" max="730" value="90" /><small>dias</small></label>
-              <label>Dias-alvo <input id="targetDaysInput" type="number" min="1" max="30" value="7" /></label>
-              <label>Cobertura máxima <input id="maxDaysInput" type="number" min="2" max="60" value="14" /></label>
+              <div class="settings-readout"><strong>Venda/dia</strong><span>MDV30 consolidado</span><small>(Qtde 3M ÷ 4) ÷ (Dias ÷ 4)</small></div>
+              <div class="settings-readout"><strong>Risco crítico</strong><span>0–3 dias</span><small>faixa fixa</small></div>
+              <label>Meta de cobertura <input id="targetDaysInput" type="number" min="7" max="7" value="7" disabled /><small>acima de 6 dias</small></label>
+              <label>Cobertura máxima <input id="maxDaysInput" type="number" min="14" max="14" value="14" disabled /><small>limite do pedido</small></label>
               <button class="button button-ghost" id="recalculateButton" type="button">Recalcular</button>
             </section>
 
             <section class="kpi-grid" aria-label="Indicadores principais">
               <article class="kpi-card kpi-danger"><span>Ruptura com venda</span><strong id="kpiRupture">0</strong><small id="kpiRuptureText">aguardando importação</small></article>
-              <article class="kpi-card kpi-warning"><span>Risco até 2 dias</span><strong id="kpiRisk">0</strong><small id="kpiRiskText">aguardando importação</small></article>
+              <article class="kpi-card kpi-warning"><span>Risco de 0 a 3 dias</span><strong id="kpiRisk">0</strong><small id="kpiRiskText">aguardando importação</small></article>
               <article class="kpi-card kpi-teal"><span>Unidades sugeridas</span><strong id="kpiSuggested">0</strong><small id="kpiSuggestedText">aguardando importação</small></article>
               <article class="kpi-card kpi-dark"><span>Saldo sem atendimento</span><strong id="kpiBlocked">0</strong><small id="kpiBlockedText">aguardando importação</small></article>
               <article class="kpi-card kpi-neutral"><span>Itens conciliados</span><strong id="kpiReconciled">0%</strong><small id="kpiReconciledText">aguardando importação</small></article>
@@ -156,7 +156,7 @@
               </div>
               <div class="filters-row">
                 <label class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar por código ou produto" /></label>
-                <label><span>Prioridade</span><select id="priorityFilter"><option value="ALL">Todas</option><option value="P0">P0 · Ruptura com venda</option><option value="P1">P1 · Até 2 dias</option><option value="P2">P2 · Abaixo do alvo</option><option value="P3">P3 · Giro alto</option><option value="BLOCKED">Bloqueado</option><option value="NO_ACTION">Sem pedido</option></select></label>
+                <label><span>Prioridade</span><select id="priorityFilter"><option value="ALL">Todas</option><option value="P0">P0 · Ruptura com venda</option><option value="P1">P1 · 0 a 3 dias</option><option value="P2">P2 · 4 a 6 dias</option><option value="P3">P3 · Acima de 6 dias</option><option value="BLOCKED">Bloqueado</option><option value="NO_ACTION">Sem pedido</option></select></label>
                 <label><span>Disponibilidade</span><select id="availabilityFilter"><option value="ALL">Todos os saldos</option><option value="AVAILABLE">Com saldo no depósito</option><option value="ZERO">Sem saldo no depósito</option></select></label>
                 <label><span>Setor</span><select id="categoryFilter"><option value="ALL">Todos os setores</option></select></label>
                 <button class="button button-ghost" id="clearFiltersButton" type="button">Limpar filtros</button>
@@ -169,7 +169,7 @@
                       <th>Prioridade</th>
                       <th>Produto</th>
                       <th>Loja</th>
-                      <th>Venda/dia</th>
+                      <th>Venda/dia — MDV30</th>
                       <th>Estoque loja</th>
                       <th>Entradas</th>
                       <th>Disp. depósito</th>
@@ -194,7 +194,7 @@
       <div class="dialog-header"><div><p class="eyebrow">REGRA DE DECISÃO</p><h2>Pedido explicável para o comprador</h2></div><button class="icon-button" id="closeRulesButton" type="button" aria-label="Fechar">×</button></div>
       <div class="rules-content">
         <p>O sistema não cria pedido apenas porque o estoque está baixo. Ele calcula a demanda diária pelas duas janelas de venda configuradas e pela média diária disponível; projeta o estoque com o que já está na loja e em entrada; e limita a sugestão ao saldo conservador do depósito.</p>
-        <div class="rule-grid"><div><strong>P0</strong><span>Ruptura com venda e disponibilidade para atender.</span></div><div><strong>P1</strong><span>Cobertura de até 2 dias ou risco imediato de falta.</span></div><div><strong>P2</strong><span>Cobertura abaixo do alvo definido.</span></div><div><strong>Bloqueado</strong><span>Há necessidade, mas o depósito não tem saldo liberado.</span></div></div>
+        <div class="rule-grid"><div><strong>P0</strong><span>Ruptura com venda e disponibilidade para atender.</span></div><div><strong>P1</strong><span>Cobertura de 0 a 3 dias: crítico e risco imediato de falta.</span></div><div><strong>P2</strong><span>Cobertura de 4 a 6 dias: atenção antes de entrar na meta.</span></div><div><strong>P3</strong><span>Cobertura acima de 6 dias: faixa de meta, com pedido limitado a 14 dias.</span></div><div><strong>Bloqueado</strong><span>Há necessidade, mas o depósito não tem saldo liberado.</span></div></div>
         <p class="fine-print">Entradas pendentes e trânsito são tratados de forma conservadora: usamos o maior valor informado, não a soma, para reduzir risco de contar a mesma mercadoria duas vezes.</p>
       </div>
     </dialog>
@@ -246,7 +246,7 @@
           <div><strong id="historyObserved">0</strong><span>amostras observadas</span></div>
           <div><strong id="historyExports">0</strong><span>exportações</span></div>
         </div>
-        <div class="history-fields"><strong>O JSON contém</strong><span>demanda, vendas curta/longa, estoque loja, entradas, saldo depósito, ruptura, cobertura, prioridade, sugestão, quantidade final, ajuste do comprador e campos para venda futura, avaria e stockout.</span></div>
+        <div class="history-fields"><strong>O JSON contém</strong><span>MDV30 calculado, Qtde Venda 3M, Dias Venda 3M, MDV do ERP como referência, vendas do SALDO, estoque loja, entradas, saldo depósito, ruptura, cobertura, prioridade, sugestão, quantidade final, ajuste do comprador e campos para venda futura, avaria e stockout.</span></div>
         <div class="history-actions"><button class="button button-primary" id="downloadHistoryButton" type="button">Baixar histórico JSON</button><button class="button button-secondary" id="importHistoryButton" type="button">Importar JSON</button><input id="historyFileInput" type="file" accept=".json,application/json" hidden /><button class="button button-ghost" id="closeHistoryActionButton" type="button">Fechar</button></div>
         <button class="text-button danger-text-button" id="clearHistoryButton" type="button">Limpar histórico deste navegador</button>
       </div>

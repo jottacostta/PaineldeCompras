@@ -4,6 +4,8 @@
 - [x] Conciliar registros exclusivamente pela descrição normalizada, indicando itens sem correspondência ou com informações incompletas; o código não participa da união.
 - [x] Permitir cadastrar produtos novos manualmente, com persistência local no navegador, sem duplicar códigos importados.
 - [x] Permitir configurar os períodos curto e longo de venda usados na demanda diária e recalcular a fila.
+- [x] Calcular a venda/dia operacional exclusivamente pelo `MDV30` calculado do `consolidado3meses` (`(Qtde Venda 3M ÷ 4) ÷ (Dias Venda 3M ÷ 4)`); não usar o `MDV (110)` do ERP, mantendo o `SALDO` para estoque da loja, saldo e pedidos.
+- [x] Trabalhar com cobertura de 0 a 3 dias como crítico, 4 a 6 dias como atenção e acima de 6 dias como meta, mantendo o teto de pedido em 14 dias e limitando ao saldo disponível do depósito.
 - [x] Permitir vincular um produto de venda a um produto-base de estoque, somando a venda ao estoque único sem duplicar ruptura ou saldo.
 - [x] Reconhecer automaticamente vínculos provenientes da aba opcional `PAINEL`, coluna `Pai`.
 - [x] Exibir um dashboard com estoque de depósito, saldo, venda, cobertura, pendências, trânsito, rupturas e recomendações de pedido.
