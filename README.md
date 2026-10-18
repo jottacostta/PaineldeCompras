@@ -2,6 +2,8 @@
 
 Gerenciador web de pedidos de loja para supermercados. O sistema importa localmente um Excel do ERP com as abas `SALDO`, `consolidado3meses` e `Zerado`, calcula prioridades de abastecimento e exporta uma fila de pedido em CSV.
 
+Aplicação publicada: <https://jottacostta.github.io/PaineldeCompras/>
+
 ## Recursos
 
 - Dashboard de ruptura, risco de cobertura, saldo do depósito e fila de pedidos.
