@@ -213,35 +213,19 @@ function uniqueCandidate(candidates) {
 }
 
 function buildIndex(rows) {
-  const exact = new Map();
-  const numeric = new Map();
   const description = new Map();
   rows.forEach((row, index) => {
-    if (row.codeExact) {
-      if (!exact.has(row.codeExact)) exact.set(row.codeExact, []);
-      exact.get(row.codeExact).push(index);
-    }
-    if (row.codeNumeric) {
-      if (!numeric.has(row.codeNumeric)) numeric.set(row.codeNumeric, []);
-      numeric.get(row.codeNumeric).push(index);
-    }
     if (row.descriptionKey) {
       if (!description.has(row.descriptionKey)) description.set(row.descriptionKey, []);
       description.get(row.descriptionKey).push(index);
     }
   });
-  return { exact, numeric, description };
+  return { description };
 }
 
 function findMatch(product, incoming, sourceIndex) {
   const index = sourceIndex[incoming.source];
   if (!index) return { record: null, method: 'new' };
-  const byExact = incoming.codeExact ? uniqueCandidate(index.exact.get(incoming.codeExact) ?? []) : null;
-  if (byExact !== null) return { record: product[byExact], method: 'código exato' };
-
-  const byNumeric = incoming.codeNumeric ? uniqueCandidate(index.numeric.get(incoming.codeNumeric) ?? []) : null;
-  if (byNumeric !== null) return { record: product[byNumeric], method: 'código numérico' };
-
   const byDescription = incoming.descriptionKey
     ? uniqueCandidate(index.description.get(incoming.descriptionKey) ?? [])
     : null;
@@ -251,15 +235,15 @@ function findMatch(product, incoming, sourceIndex) {
 }
 
 function recordKey(row, order) {
-  return row.codeExact || row.descriptionKey || `${row.source}-${order}`;
+  return row.descriptionKey || `${row.source}-${order}`;
 }
 
 function combineSources(saldoRows, consolidatedRows, zeradoRows) {
   const products = [];
   const sourceIndex = {
-    SALDO: { exact: new Map(), numeric: new Map(), description: new Map() },
-    consolidado3meses: { exact: new Map(), numeric: new Map(), description: new Map() },
-    Zerado: { exact: new Map(), numeric: new Map(), description: new Map() },
+    SALDO: { description: new Map() },
+    consolidado3meses: { description: new Map() },
+    Zerado: { description: new Map() },
   };
   const allRows = [
     ...saldoRows.map((row) => ({ ...row, source: 'SALDO' })),
@@ -269,19 +253,11 @@ function combineSources(saldoRows, consolidatedRows, zeradoRows) {
 
   const rebuiltIndex = () => {
     for (const source of Object.keys(sourceIndex)) {
-      sourceIndex[source] = { exact: new Map(), numeric: new Map(), description: new Map() };
+      sourceIndex[source] = { description: new Map() };
     }
     products.forEach((product, index) => {
       Object.keys(product.sources).forEach((source) => {
         const row = product.sources[source];
-        if (row.codeExact) {
-          if (!sourceIndex[source].exact.has(row.codeExact)) sourceIndex[source].exact.set(row.codeExact, []);
-          sourceIndex[source].exact.get(row.codeExact).push(index);
-        }
-        if (row.codeNumeric) {
-          if (!sourceIndex[source].numeric.has(row.codeNumeric)) sourceIndex[source].numeric.set(row.codeNumeric, []);
-          sourceIndex[source].numeric.get(row.codeNumeric).push(index);
-        }
         if (row.descriptionKey) {
           if (!sourceIndex[source].description.has(row.descriptionKey)) sourceIndex[source].description.set(row.descriptionKey, []);
           sourceIndex[source].description.get(row.descriptionKey).push(index);
@@ -293,10 +269,6 @@ function combineSources(saldoRows, consolidatedRows, zeradoRows) {
   allRows.forEach((row, index) => {
     const matches = Object.values(sourceIndex)
       .map((indexBySource) => {
-        const exact = row.codeExact ? uniqueCandidate(indexBySource.exact.get(row.codeExact) ?? []) : null;
-        if (exact !== null) return { index: exact, method: 'código exato' };
-        const numeric = row.codeNumeric ? uniqueCandidate(indexBySource.numeric.get(row.codeNumeric) ?? []) : null;
-        if (numeric !== null) return { index: numeric, method: 'código numérico' };
         const description = row.descriptionKey ? uniqueCandidate(indexBySource.description.get(row.descriptionKey) ?? []) : null;
         if (description !== null) return { index: description, method: 'descrição' };
         return null;
@@ -308,7 +280,6 @@ function combineSources(saldoRows, consolidatedRows, zeradoRows) {
     if (matchedIndexes.length === 1) {
       product = products[matchedIndexes[0]];
       product.matchMethods.push(matches[0].method);
-      if (matches.some((match) => match.method === 'descrição')) product.warnings.push('Conciliação feita pela descrição: confira código e embalagem.');
     } else {
       product = {
         id: recordKey(row, index),
@@ -497,23 +468,14 @@ function actualSheetName(workbook, expected) {
 }
 
 function productKeys(product) {
-  const codes = [product.code, ...Object.values(product.sources ?? {}).map((source) => source.code)];
   const descriptions = [product.description, ...Object.values(product.sources ?? {}).map((source) => source.description)];
   return {
-    exactCodes: new Set(codes.map(codeExact).filter(Boolean)),
-    numericCodes: new Set(codes.map(codeNumeric).filter(Boolean)),
     descriptions: new Set(descriptions.map((description) => normalizeText(description)).filter(Boolean)),
   };
 }
 
-function findProductByMapping(products, code, description) {
-  const exact = codeExact(code);
-  const numeric = codeNumeric(code);
+function findProductByMapping(products, _code, description) {
   const descriptionKey = normalizeText(description);
-  const exactMatches = products.filter((product) => productKeys(product).exactCodes.has(exact));
-  if (exact && exactMatches.length === 1) return exactMatches[0];
-  const numericMatches = products.filter((product) => numeric && productKeys(product).numericCodes.has(numeric));
-  if (numeric && numericMatches.length === 1) return numericMatches[0];
   const descriptionMatches = products.filter((product) => descriptionKey && productKeys(product).descriptions.has(descriptionKey));
   return descriptionMatches.length === 1 ? descriptionMatches[0] : null;
 }
@@ -578,7 +540,7 @@ function panelMappings(workbook) {
     stockCode: row.Host,
     stockDescription: row.Pai ?? row['Descrição Pai'] ?? row['Produto Pai'] ?? '',
     origin: 'PAINEL',
-  })).filter((mapping) => rawText(mapping.saleCode) && rawText(mapping.stockCode) && codeExact(mapping.saleCode) !== codeExact(mapping.stockCode));
+  })).filter((mapping) => rawText(mapping.saleDescription) && rawText(mapping.stockDescription) && normalizeText(mapping.saleDescription) !== normalizeText(mapping.stockDescription));
 }
 
 function rowsWithHeader(workbook, sheetName, requiredHeaders) {
@@ -642,11 +604,7 @@ function applyBaseMetadata(products, metadataRows) {
   let matched = 0;
   products.forEach((product) => {
     const keys = productKeys(product);
-    const candidates = [
-      ...[...keys.exactCodes].flatMap((key) => index.exact.get(key) ?? []),
-      ...[...keys.numericCodes].flatMap((key) => index.numeric.get(key) ?? []),
-      ...[...keys.descriptions].flatMap((key) => index.description.get(key) ?? []),
-    ];
+    const candidates = [...keys.descriptions].flatMap((key) => index.description.get(key) ?? []);
     const unique = [...new Set(candidates)];
     const metadata = unique.length ? metadataRows[unique[0]] : null;
     if (!metadata) return;

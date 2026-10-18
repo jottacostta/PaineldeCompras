@@ -1,7 +1,7 @@
 # Gerenciador de Pedidos de Loja — Entregas
 
 - [x] Importar localmente um Excel completo ou arquivos ERP separados e identificar as fontes `SALDO`, `consolidado3meses` e `Zerado`.
-- [x] Conciliar registros por código e descrição, indicando itens sem correspondência ou com informações incompletas.
+- [x] Conciliar registros exclusivamente pela descrição normalizada, indicando itens sem correspondência ou com informações incompletas; o código não participa da união.
 - [x] Permitir cadastrar produtos novos manualmente, com persistência local no navegador, sem duplicar códigos importados.
 - [x] Permitir configurar os períodos curto e longo de venda usados na demanda diária e recalcular a fila.
 - [x] Permitir vincular um produto de venda a um produto-base de estoque, somando a venda ao estoque único sem duplicar ruptura ou saldo.

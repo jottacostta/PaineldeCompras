@@ -9,7 +9,7 @@ Snapshot anterior: [`versoes_anteriores/PaineldeCompras_v1_antes_importacao_arqu
 ## Recursos
 
 - Dashboard de ruptura, risco de cobertura, saldo do depósito e fila de pedidos.
-- Conciliação por código e descrição.
+- Conciliação exclusivamente pela descrição normalizada do produto; o código permanece apenas como referência visual.
 - Estoque único para produtos de venda ligados a produtos-base de produção, como `QUE MUC YEMA FATIADO kg` → `QUE MUC YEMA FRACIONADO kg`.
 - Cadastro manual de produtos e vínculo manual de estoque, persistidos localmente no navegador.
 - Períodos curto e longo de venda configuráveis.

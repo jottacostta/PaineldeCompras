@@ -193,6 +193,16 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function normalizeTextForUi(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -542,14 +552,14 @@ function openMappingDialog() {
 function saveMapping(event) {
   event.preventDefault();
   const form = Object.fromEntries(new FormData(el.mappingForm).entries());
-  const saleCode = String(form.saleCode || '').trim();
-  const stockCode = String(form.stockCode || '').trim();
-  if (!saleCode || !stockCode || saleCode === stockCode) {
-    showToast('Informe produtos diferentes para venda e estoque-base.', 'warning');
+  const saleDescription = String(form.saleDescription || '').trim();
+  const stockDescription = String(form.stockDescription || '').trim();
+  if (!saleDescription || !stockDescription || normalizeTextForUi(saleDescription) === normalizeTextForUi(stockDescription)) {
+    showToast('Informe descrições diferentes para venda e estoque-base.', 'warning');
     return;
   }
-  const mapping = { ...form, saleCode, stockCode, origin: 'manual' };
-  if (state.mappings.some((item) => item.saleCode === saleCode && item.stockCode === stockCode)) {
+  const mapping = { ...form, saleCode: '', stockCode: '', saleDescription, stockDescription, origin: 'manual' };
+  if (state.mappings.some((item) => normalizeTextForUi(item.saleDescription) === normalizeTextForUi(saleDescription) && normalizeTextForUi(item.stockDescription) === normalizeTextForUi(stockDescription))) {
     showToast('Esse vínculo já está salvo.', 'warning');
     return;
   }
