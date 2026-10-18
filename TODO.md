@@ -14,6 +14,7 @@
 - [x] Permitir reutilização recorrente com novo arquivo ERP, sem digitação manual e sem armazenar os arquivos importados.
 - [x] Registrar automaticamente importações, parâmetros, variáveis dos produtos, decisões do comprador, vínculos, cadastros e exportações em histórico local estruturado.
 - [x] Aceitar uma planilha completa com as três abas ou os arquivos separados `Saldo.xlsx`, `consolidado3meses.xls` e `zerado.xlsx`, inclusive export tabulado com extensão `.xls`.
+- [x] Aceitar a base histórica `vendastrimestrelaticios_dashboard_pedidos.xlsx` separadamente, usando setor e classificação de giro sem deixar seus números antigos sobrescrever as três atualizações atuais do ERP.
 - [x] Permitir baixar o histórico em JSON com amostras de treinamento e campos de observação futura para venda, ruptura, aceitação e avaria.
 - [x] Permitir importar históricos JSON de outros computadores/períodos, unir os registros sem duplicação e persistir o resultado no `localStorage`.
 
