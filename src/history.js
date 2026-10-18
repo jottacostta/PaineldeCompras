@@ -19,9 +19,9 @@ function sourceValue(product, field) {
 }
 
 function productKey(product) {
-  const code = String(product.code ?? '').trim().toUpperCase();
+  const description = String(product.description ?? '').trim().toUpperCase();
   const store = String(product.store ?? '').trim().toUpperCase();
-  return `${code || product.description}:${store}`;
+  return `${description || 'produto sem descrição'}:${store}`;
 }
 
 function snapshotId() {

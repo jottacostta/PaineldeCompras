@@ -9,7 +9,7 @@
       content="Gerenciador de pedidos de loja com leitura local de planilhas ERP."
     />
     <title>Orquestra | Pedidos de Loja</title>
-    <script type="module" crossorigin src="/assets/index-BjoQNTv8.js"></script>
+    <script type="module" crossorigin src="/assets/index-XIxxOlN_.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BW5o9N8w.css">
   </head>
   <body>
@@ -93,7 +93,7 @@
             </div>
 
             <div class="method-strip">
-              <div><span class="method-number">01</span><p><strong>Conciliamos produtos</strong><br />por código; descrição entra como apoio quando não há código confiável.</p></div>
+              <div><span class="method-number">01</span><p><strong>Conciliamos produtos</strong><br />pela descrição normalizada; o código fica apenas como referência visual.</p></div>
               <div><span class="method-number">02</span><p><strong>Projetamos cobertura</strong><br />com venda recente, estoque da loja e entradas já registradas.</p></div>
               <div><span class="method-number">03</span><p><strong>Limitamos o pedido</strong><br />pelo saldo conservador do depósito para evitar promessas sem atendimento.</p></div>
             </div>
@@ -227,10 +227,8 @@
       <form id="mappingForm" class="dialog-form">
         <p class="form-help">Exemplo: a venda de <strong>QUE MUC YEMA FATIADO kg</strong> será somada à demanda do estoque de <strong>QUE MUC YEMA FRACIONADO kg</strong>. O painel mantém o produto-base como estoque e registra o alias de venda.</p>
         <div class="form-grid mapping-grid">
-          <label>Produto de venda — código<input name="saleCode" list="productCodeList" required placeholder="Código ou descrição" /></label>
-          <label>Produto de venda — descrição<input name="saleDescription" list="productDescriptionList" placeholder="Descrição para conferência" /></label>
-          <label>Produto-base de estoque — código<input name="stockCode" list="productCodeList" required placeholder="Código ou descrição" /></label>
-          <label>Produto-base de estoque — descrição<input name="stockDescription" list="productDescriptionList" placeholder="Descrição para conferência" /></label>
+          <label>Produto de venda — descrição<input name="saleDescription" list="productDescriptionList" required placeholder="Descrição exata do produto vendido" /></label>
+          <label>Produto-base de estoque — descrição<input name="stockDescription" list="productDescriptionList" required placeholder="Descrição exata do estoque-base" /></label>
         </div>
         <datalist id="productCodeList"></datalist><datalist id="productDescriptionList"></datalist>
         <div id="mappingList" class="mapping-list"></div>
