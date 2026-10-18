@@ -109,7 +109,60 @@ function getField(row, aliases) {
 
 function sheetRows(workbook, sheetName) {
   const worksheet = workbook.Sheets[sheetName];
+  if (!worksheet) return [];
   return XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: true, dateNF: 'dd/mm/yyyy' });
+}
+
+function decodeLegacyText(data) {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  try {
+    return new TextDecoder('windows-1252').decode(bytes);
+  } catch {
+    return new TextDecoder().decode(bytes);
+  }
+}
+
+function looksLikeDelimitedText(data) {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  const sample = bytes.slice(0, 4096);
+  if (sample.includes(0)) return false;
+  const text = decodeLegacyText(sample);
+  const firstLine = text.split(/\r?\n/, 1)[0];
+  return text.includes('\n') && (firstLine.includes('\t') || firstLine.includes(';'));
+}
+
+function inferStandaloneSheetName(workbook, fileName) {
+  const fileKey = normalizeHeader(fileName);
+  if (fileKey.includes('zerado')) return 'Zerado';
+  if (fileKey.includes('saldo')) return 'SALDO';
+  if (fileKey.includes('consolidado3meses') || fileKey.includes('consolidado')) return 'consolidado3meses';
+
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const header = XLSX.utils.sheet_to_json(firstSheet, { header: 1, range: 0, raw: true, defval: '' })[0] ?? [];
+  const headerKey = normalizeHeader(header.join(' '));
+  if (headerKey.includes('zerado')) return 'Zerado';
+  if (headerKey.includes('estcentral') || headerKey.includes('pedidodeloja')) return 'SALDO';
+  if (headerKey.includes('valorvenda') || headerKey.includes('qtdevenda') || headerKey.includes('cobertura')) return 'consolidado3meses';
+  return null;
+}
+
+function renameSingleSheet(workbook, nextName) {
+  const currentName = workbook.SheetNames[0];
+  if (!currentName || currentName === nextName) return;
+  workbook.Sheets[nextName] = workbook.Sheets[currentName];
+  delete workbook.Sheets[currentName];
+  workbook.SheetNames = [nextName];
+}
+
+function readErpWorkbook(data, fileName) {
+  const workbook = looksLikeDelimitedText(data)
+    ? XLSX.read(decodeLegacyText(data), { type: 'string', FS: decodeLegacyText(data).split(/\r?\n/, 1)[0].includes('\t') ? '\t' : ';', raw: true, cellDates: true })
+    : XLSX.read(data, { type: 'array', cellDates: true });
+  if (workbook.SheetNames.length === 1) {
+    const inferred = inferStandaloneSheetName(workbook, fileName);
+    if (inferred) renameSingleSheet(workbook, inferred);
+  }
+  return workbook;
 }
 
 function normalizedRow(row, source) {
@@ -423,12 +476,16 @@ function calculateProduct(product, params) {
   };
 }
 
-function validateWorkbook(workbook) {
+function validateWorkbook(workbook, fileName) {
   const names = workbook.SheetNames.map((name) => name.trim().toLocaleLowerCase('pt-BR'));
-  const missing = REQUIRED_SHEETS.filter((required) => !names.includes(required.toLocaleLowerCase('pt-BR')));
-  if (missing.length) {
-    throw new Error(`Não encontramos a(s) aba(s) obrigatória(s): ${missing.join(', ')}.`);
+  const recognized = REQUIRED_SHEETS.filter((required) => names.includes(required.toLocaleLowerCase('pt-BR')));
+  if (!recognized.length) {
+    throw new Error(`Não identificamos a fonte do arquivo “${fileName}”. Use um arquivo com nome SALDO, consolidado3meses ou Zerado, ou uma planilha com as três abas.`);
   }
+  return {
+    recognized,
+    missing: REQUIRED_SHEETS.filter((required) => !recognized.includes(required)),
+  };
 }
 
 function actualSheetName(workbook, expected) {
@@ -550,16 +607,32 @@ export function createManualProduct(form, params) {
 }
 
 export async function importWorkbook(file, params, mappings = []) {
-  const data = await file.arrayBuffer();
-  const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-  validateWorkbook(workbook);
+  const files = Array.isArray(file) ? file.filter(Boolean) : [file].filter(Boolean);
+  if (!files.length) throw new Error('Selecione pelo menos um arquivo do ERP.');
 
-  const saldoRows = sheetRows(workbook, actualSheetName(workbook, 'SALDO')).map((row) => normalizedRow(row, 'SALDO'));
-  const consolidatedRows = sheetRows(workbook, actualSheetName(workbook, 'consolidado3meses')).map((row) => normalizedRow(row, 'consolidado3meses'));
-  const zeradoRows = sheetRows(workbook, actualSheetName(workbook, 'Zerado')).map((row) => normalizedRow(row, 'Zerado'));
+  const sourceRows = { SALDO: [], consolidado3meses: [], Zerado: [] };
+  const importedMappings = [];
+  const recognizedSheets = new Set();
+  for (const currentFile of files) {
+    const data = await currentFile.arrayBuffer();
+    const workbook = readErpWorkbook(data, currentFile.name);
+    const validation = validateWorkbook(workbook, currentFile.name);
+    validation.recognized.forEach((source) => {
+      recognizedSheets.add(source);
+      const rows = sheetRows(workbook, actualSheetName(workbook, source)).map((row) => normalizedRow(row, source));
+      sourceRows[source].push(...rows);
+    });
+    importedMappings.push(...panelMappings(workbook));
+  }
 
+  if (!Object.values(sourceRows).some((rows) => rows.length)) {
+    throw new Error('Os arquivos foram reconhecidos, mas não há registros de produtos para processar.');
+  }
+
+  const saldoRows = sourceRows.SALDO;
+  const consolidatedRows = sourceRows.consolidado3meses;
+  const zeradoRows = sourceRows.Zerado;
   const rawProducts = combineSources(saldoRows, consolidatedRows, zeradoRows);
-  const importedMappings = panelMappings(workbook);
   const appliedMappings = applyProductMappings(rawProducts, [...importedMappings, ...(mappings ?? [])]);
   const products = rawProducts
     .map((product) => calculateProduct(product, params))
@@ -576,13 +649,15 @@ export async function importWorkbook(file, params, mappings = []) {
   const categories = [...new Set(products.map((product) => product.paste).filter(Boolean))].sort();
   const stats = {
     sourceRows: { saldo: saldoRows.length, consolidated: consolidatedRows.length, zerado: zeradoRows.length },
+    recognizedSheets: [...recognizedSheets],
+    missingSheets: REQUIRED_SHEETS.filter((source) => !recognizedSheets.has(source)),
     unmatched: products.filter((product) => !product.hasSaldo || !product.hasConsolidated).length,
     matched: products.filter((product) => product.hasSaldo && product.hasConsolidated).length,
     descriptionMatches: products.filter((product) => product.matchMethods.includes('descrição')).length,
     mappedProducts: appliedMappings.length,
   };
 
-  return { products, stores: stores.length ? stores : [DEFAULT_STORE], categories, stats, mappings: appliedMappings, fileName: file.name, importedAt: new Date() };
+  return { products, stores: stores.length ? stores : [DEFAULT_STORE], categories, stats, mappings: appliedMappings, fileName: files.map((currentFile) => currentFile.name).join(' + '), fileNames: files.map((currentFile) => currentFile.name), importedAt: new Date() };
 }
 
 export function recalculateProducts(products, params) {

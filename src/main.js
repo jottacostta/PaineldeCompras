@@ -414,23 +414,25 @@ function setInitialSelection() {
   state.adjustments = new Map();
 }
 
-async function handleFile(file) {
-  if (!file) return;
-  const allowed = /\.(xlsx|xls|xlsm)$/i.test(file.name);
+async function handleFile(fileInput) {
+  const files = Array.isArray(fileInput) ? fileInput.filter(Boolean) : Array.from(fileInput ?? (fileInput ? [fileInput] : []));
+  if (!files.length) return;
+  const invalidFile = files.find((file) => !/\.(xlsx|xls|xlsm)$/i.test(file.name));
+  const allowed = !invalidFile;
   if (!allowed) {
-    showToast('Selecione um arquivo Excel (.xlsx, .xls ou .xlsm).', 'error');
+    showToast(`Arquivo não aceito: ${invalidFile.name}. Use .xlsx, .xls ou .xlsm.`, 'error');
     return;
   }
   el.uploadCard.classList.add('is-loading');
   try {
-    const result = await importWorkbook(file, state.params, state.mappings);
+    const result = await importWorkbook(files, state.params, state.mappings);
     state.products = applyManualProducts(result.products);
     state.categories = [...new Set(state.products.map((product) => product.paste).filter(Boolean))].sort();
     state.stores = [...new Set(state.products.map((product) => product.store).filter(Boolean))].sort();
     state.stats = result.stats;
     state.appliedMappings = result.mappings ?? [];
     state.fileName = result.fileName;
-    state.currentFile = file;
+    state.currentFile = files.length === 1 ? files[0] : files;
     state.importedAt = result.importedAt;
     const historyImport = recordImport(state.history, {
       fileName: result.fileName,
@@ -452,11 +454,12 @@ async function handleFile(file) {
     syncCategorySelect();
     syncProductLists();
     renderMappingList();
-    el.importMeta.textContent = `IMPORTADO · ${file.name.toUpperCase()}`;
+    el.importMeta.textContent = `IMPORTADO · ${result.fileName.toUpperCase()}`;
     el.importView.classList.add('hidden');
     el.appView.classList.remove('hidden');
     renderAll();
-    showToast(`${formatNumber.format(state.products.length)} produtos processados. ${formatNumber.format(state.appliedMappings.length)} vínculos de estoque aplicados.`, 'success');
+    const missing = result.stats.missingSheets?.length ? ` Fontes ausentes nesta carga: ${result.stats.missingSheets.join(', ')}.` : '';
+    showToast(`${formatNumber.format(state.products.length)} produtos processados. ${formatNumber.format(state.appliedMappings.length)} vínculos de estoque aplicados.${missing}`, missing ? 'warning' : 'success');
   } catch (error) {
     console.error(error);
     showToast(error?.message || 'Não foi possível ler a planilha. Confira a estrutura do arquivo.', 'error');
@@ -643,10 +646,10 @@ function quickFilter(filter) {
   }
 }
 
-el.fileInput.addEventListener('change', (event) => handleFile(event.target.files?.[0]));
+el.fileInput.addEventListener('change', (event) => handleFile(event.target.files));
 el.uploadCard.addEventListener('dragover', (event) => { event.preventDefault(); el.uploadCard.classList.add('is-dragging'); });
 el.uploadCard.addEventListener('dragleave', () => el.uploadCard.classList.remove('is-dragging'));
-el.uploadCard.addEventListener('drop', (event) => { event.preventDefault(); el.uploadCard.classList.remove('is-dragging'); handleFile(event.dataTransfer.files?.[0]); });
+el.uploadCard.addEventListener('drop', (event) => { event.preventDefault(); el.uploadCard.classList.remove('is-dragging'); handleFile(event.dataTransfer.files); });
 el.newImportButton.addEventListener('click', () => el.fileInput.click());
 el.historyButton.addEventListener('click', openHistoryDialog);
 el.closeHistoryButton.addEventListener('click', () => el.historyDialog.close());
