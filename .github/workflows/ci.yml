@@ -2,9 +2,13 @@ name: CI
 
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -12,6 +16,7 @@ concurrency:
 
 jobs:
   build:
+    name: Instalar dependências e validar build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Setup pnpm
         run: |
           corepack enable
@@ -28,4 +33,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build
+        env:
+          VITE_BASE: /PaineldeCompras/
         run: pnpm build
