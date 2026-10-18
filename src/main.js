@@ -6,6 +6,19 @@ import {
   makeCsv,
   recalculateProducts,
 } from './engine.js';
+import {
+  clearHistory,
+  downloadHistory,
+  historySummary,
+  loadHistory,
+  recordEvent,
+  recordExport,
+  recordImport,
+  recordManualProduct,
+  recordMapping,
+  saveHistory,
+  updateCurrentDecisions,
+} from './history.js';
 import './styles.css';
 
 const PAGE_SIZE = 25;
@@ -19,6 +32,8 @@ const state = {
   stores: [],
   fileName: '',
   currentFile: null,
+  history: loadHistory(),
+  currentSnapshotId: null,
   importedAt: null,
   stats: null,
   params: { shortPeriod: 15, longPeriod: 30, targetDays: 7, maxDays: 14 },
@@ -38,6 +53,7 @@ const el = {
   fileInput: document.querySelector('#fileInput'),
   uploadCard: document.querySelector('#uploadCard'),
   newImportButton: document.querySelector('#newImportButton'),
+  historyButton: document.querySelector('#historyButton'),
   addProductButton: document.querySelector('#addProductButton'),
   linkProductButton: document.querySelector('#linkProductButton'),
   shortPeriodInput: document.querySelector('#shortPeriodInput'),
@@ -80,6 +96,15 @@ const el = {
   mappingList: document.querySelector('#mappingList'),
   productCodeList: document.querySelector('#productCodeList'),
   productDescriptionList: document.querySelector('#productDescriptionList'),
+  historyDialog: document.querySelector('#historyDialog'),
+  closeHistoryButton: document.querySelector('#closeHistoryButton'),
+  closeHistoryActionButton: document.querySelector('#closeHistoryActionButton'),
+  downloadHistoryButton: document.querySelector('#downloadHistoryButton'),
+  clearHistoryButton: document.querySelector('#clearHistoryButton'),
+  historyImports: document.querySelector('#historyImports'),
+  historySamples: document.querySelector('#historySamples'),
+  historyObserved: document.querySelector('#historyObserved'),
+  historyExports: document.querySelector('#historyExports'),
   kpi: {
     rupture: document.querySelector('#kpiRupture'),
     ruptureText: document.querySelector('#kpiRuptureText'),
@@ -116,6 +141,27 @@ function loadStoredMappings() {
 
 function saveStoredMappings() {
   localStorage.setItem('orquestra-product-mappings', JSON.stringify(state.mappings));
+}
+
+function persistHistory() {
+  const result = saveHistory(state.history);
+  state.history = result.history;
+  if (!result.persisted) showToast('O histórico ficou apenas nesta sessão; baixe o JSON para não perder os registros.', 'warning');
+  if (result.trimmed) showToast('O histórico local foi compactado. Baixe o JSON para manter um arquivo completo.', 'warning');
+  return result;
+}
+
+function refreshHistoryDialog() {
+  const summary = historySummary(state.history);
+  el.historyImports.textContent = formatNumber.format(summary.imports);
+  el.historySamples.textContent = formatNumber.format(summary.samples);
+  el.historyObserved.textContent = formatNumber.format(summary.observedSamples);
+  el.historyExports.textContent = formatNumber.format(summary.exports);
+}
+
+function openHistoryDialog() {
+  refreshHistoryDialog();
+  el.historyDialog.showModal();
 }
 
 function escapeHtml(value) {
@@ -366,10 +412,22 @@ async function handleFile(file) {
     state.fileName = result.fileName;
     state.currentFile = file;
     state.importedAt = result.importedAt;
+    const historyImport = recordImport(state.history, {
+      fileName: result.fileName,
+      importedAt: result.importedAt,
+      params: state.params,
+      stats: result.stats,
+      mappings: result.mappings,
+      products: state.products,
+    });
+    state.history = historyImport.history;
+    state.currentSnapshotId = historyImport.snapshotId;
     state.filters = { search: '', priority: 'ALL', availability: 'ALL', category: 'ALL', store: 'ALL' };
     state.currentPage = 1;
     state.currentView = 'dashboard';
     setInitialSelection();
+    updateCurrentDecisions(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments);
+    persistHistory();
     syncStoreSelect();
     syncCategorySelect();
     syncProductLists();
@@ -403,6 +461,14 @@ function recalculate() {
   state.selectedIds = new Set(state.products.filter((product) => selectedBefore.has(product.id) && product.suggested > 0 && product.priority !== 'BLOCKED').map((product) => product.id));
   state.adjustments.clear();
   state.currentPage = 1;
+  recordEvent(state.history, {
+    type: 'recalculate',
+    snapshotId: state.currentSnapshotId,
+    parameters: { ...state.params },
+    productCount: state.products.length,
+  });
+  updateCurrentDecisions(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments);
+  persistHistory();
   renderAll();
   showToast(`Fila recalculada usando venda de ${shortPeriod}D/${longPeriod}D, meta de ${targetDays} dias e teto de ${maxDays} dias.`, 'success');
 }
@@ -431,6 +497,7 @@ function addManualProduct(event) {
   saveStoredManualEntries();
   const product = createManualProduct(form, state.params);
   state.products = [...state.products, product];
+  state.history = recordManualProduct(state.history, form, product);
   state.categories = [...new Set(state.products.map((item) => item.paste).filter(Boolean))].sort();
   state.stores = [...new Set(state.products.map((item) => item.store).filter(Boolean))].sort();
   syncStoreSelect();
@@ -463,6 +530,8 @@ function saveMapping(event) {
     return;
   }
   state.mappings.push(mapping);
+  state.history = recordMapping(state.history, mapping);
+  persistHistory();
   saveStoredMappings();
   el.mappingForm.reset();
   el.mappingDialog.close();
@@ -475,9 +544,16 @@ function saveMapping(event) {
   }
 }
 
+function persistDecisionState() {
+  if (!state.currentSnapshotId) return;
+  updateCurrentDecisions(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments);
+  persistHistory();
+}
+
 function selectItem(id, selected) {
   if (selected) state.selectedIds.add(id);
   else state.selectedIds.delete(id);
+  persistDecisionState();
   updateKpis();
   renderTable();
   updatePriorityList();
@@ -495,6 +571,7 @@ function updateQuantity(id, rawValue) {
   state.adjustments.set(id, quantity);
   if (quantity > 0 && product.priority !== 'BLOCKED') state.selectedIds.add(id);
   if (quantity === 0) state.selectedIds.delete(id);
+  persistDecisionState();
   updateKpis();
   renderTable();
   updatePriorityList();
@@ -506,6 +583,8 @@ function exportQueue() {
     showToast('Selecione itens com quantidade positiva antes de exportar.', 'warning');
     return;
   }
+  state.history = recordExport(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments, rows.length);
+  persistHistory();
   const csv = makeCsv(rows);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -549,6 +628,20 @@ el.uploadCard.addEventListener('dragover', (event) => { event.preventDefault(); 
 el.uploadCard.addEventListener('dragleave', () => el.uploadCard.classList.remove('is-dragging'));
 el.uploadCard.addEventListener('drop', (event) => { event.preventDefault(); el.uploadCard.classList.remove('is-dragging'); handleFile(event.dataTransfer.files?.[0]); });
 el.newImportButton.addEventListener('click', () => el.fileInput.click());
+el.historyButton.addEventListener('click', openHistoryDialog);
+el.closeHistoryButton.addEventListener('click', () => el.historyDialog.close());
+el.closeHistoryActionButton.addEventListener('click', () => el.historyDialog.close());
+el.downloadHistoryButton.addEventListener('click', () => {
+  downloadHistory(state.history);
+  showToast('Histórico JSON gerado para download.', 'success');
+});
+el.clearHistoryButton.addEventListener('click', () => {
+  if (!window.confirm('Apagar o histórico de aprendizado salvo neste navegador? O arquivo Excel não será afetado.')) return;
+  state.history = clearHistory();
+  state.currentSnapshotId = null;
+  refreshHistoryDialog();
+  showToast('Histórico local apagado.', 'success');
+});
 el.addProductButton.addEventListener('click', openProductDialog);
 el.linkProductButton.addEventListener('click', openMappingDialog);
 el.productForm.addEventListener('submit', addManualProduct);

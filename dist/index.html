@@ -9,8 +9,8 @@
       content="Gerenciador de pedidos de loja com leitura local de planilhas ERP."
     />
     <title>Orquestra | Pedidos de Loja</title>
-    <script type="module" crossorigin src="/assets/index-DsdWi_aH.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-M_-xYQc_.css">
+    <script type="module" crossorigin src="/assets/index-DZyCCXul.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BW5o9N8w.css">
   </head>
   <body>
     <div class="app-shell">
@@ -51,6 +51,7 @@
           <div class="breadcrumb"><span>Operação</span><span>/</span><strong>Pedidos de loja</strong></div>
           <div class="topbar-actions">
             <span class="connection-status"><i></i> Pronto para importar</span>
+            <button class="button button-secondary" id="historyButton" type="button">Histórico ML</button>
             <button class="button button-secondary" id="newImportButton" type="button">Nova importação</button>
           </div>
         </header>
@@ -233,6 +234,22 @@
         <div id="mappingList" class="mapping-list"></div>
         <div class="dialog-actions"><button class="button button-ghost" id="cancelMappingButton" type="button">Fechar</button><button class="button button-primary" type="submit">Salvar vínculo</button></div>
       </form>
+    </dialog>
+
+    <dialog id="historyDialog" class="form-dialog history-dialog">
+      <div class="dialog-header"><div><p class="eyebrow">BASE DE APRENDIZADO</p><h2>Histórico de decisões em JSON</h2></div><button class="icon-button" id="closeHistoryButton" type="button" aria-label="Fechar">×</button></div>
+      <div class="dialog-form">
+        <p class="form-help">O sistema registra as condições no momento da recomendação, a decisão do comprador e a observação da importação seguinte. O Excel original não é armazenado; apenas variáveis estruturadas são mantidas localmente neste navegador.</p>
+        <div class="history-stat-grid">
+          <div><strong id="historyImports">0</strong><span>importações</span></div>
+          <div><strong id="historySamples">0</strong><span>amostras de produtos</span></div>
+          <div><strong id="historyObserved">0</strong><span>amostras observadas</span></div>
+          <div><strong id="historyExports">0</strong><span>exportações</span></div>
+        </div>
+        <div class="history-fields"><strong>O JSON contém</strong><span>demanda, vendas curta/longa, estoque loja, entradas, saldo depósito, ruptura, cobertura, prioridade, sugestão, quantidade final, ajuste do comprador e campos para venda futura, avaria e stockout.</span></div>
+        <div class="history-actions"><button class="button button-primary" id="downloadHistoryButton" type="button">Baixar histórico JSON</button><button class="button button-ghost" id="closeHistoryActionButton" type="button">Fechar</button></div>
+        <button class="text-button danger-text-button" id="clearHistoryButton" type="button">Limpar histórico deste navegador</button>
+      </div>
     </dialog>
 
   </body>

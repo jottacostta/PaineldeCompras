@@ -12,3 +12,5 @@
 - [x] Criar uma fila de pedidos revisável: ajustar quantidade, selecionar itens e acompanhar o total pronto para pedido.
 - [x] Exportar a fila final em CSV compatível com o fluxo operacional do comprador.
 - [x] Permitir reutilização recorrente com novo arquivo ERP, sem digitação manual e sem armazenar os arquivos importados.
+- [x] Registrar automaticamente importações, parâmetros, variáveis dos produtos, decisões do comprador, vínculos, cadastros e exportações em histórico local estruturado.
+- [x] Permitir baixar o histórico em JSON com amostras de treinamento e campos de observação futura para venda, ruptura, aceitação e avaria.
