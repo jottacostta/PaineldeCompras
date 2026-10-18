@@ -57,8 +57,6 @@ const el = {
   historyButton: document.querySelector('#historyButton'),
   addProductButton: document.querySelector('#addProductButton'),
   linkProductButton: document.querySelector('#linkProductButton'),
-  shortPeriodInput: document.querySelector('#shortPeriodInput'),
-  longPeriodInput: document.querySelector('#longPeriodInput'),
   targetDaysInput: document.querySelector('#targetDaysInput'),
   maxDaysInput: document.querySelector('#maxDaysInput'),
   recalculateButton: document.querySelector('#recalculateButton'),
@@ -481,14 +479,9 @@ async function handleFile(fileInput) {
 }
 
 function recalculate() {
-  const shortPeriod = Math.max(1, Number(el.shortPeriodInput.value) || 15);
-  const longPeriod = Math.max(shortPeriod, 30, Number(el.longPeriodInput.value) || 30);
-  const criticalDays = 2;
   const targetDays = Math.max(1, Number(el.targetDaysInput.value) || 7);
   const maxDays = Math.max(targetDays, Number(el.maxDaysInput.value) || 14);
-  state.params = { shortPeriod, longPeriod, criticalDays, targetDays, maxDays };
-  el.shortPeriodInput.value = shortPeriod;
-  el.longPeriodInput.value = longPeriod;
+  state.params = { shortPeriod: 15, longPeriod: 30, criticalDays: 2, targetDays, maxDays };
   el.targetDaysInput.value = targetDays;
   el.maxDaysInput.value = maxDays;
   const selectedBefore = new Set(state.selectedIds);
@@ -505,7 +498,7 @@ function recalculate() {
   updateCurrentDecisions(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments);
   persistHistory();
   renderAll();
-  showToast(`Fila recalculada usando SALDO de ${shortPeriod}D/${longPeriod}D, risco em ${criticalDays} dias, meta de ${targetDays} dias e teto de ${maxDays} dias.`, 'success');
+  showToast(`Fila recalculada usando MDV30 (Qtde Venda 3M ÷ Dias Venda), risco em 2 dias, meta de ${targetDays} dias e teto de ${maxDays} dias.`, 'success');
 }
 
 function openProductDialog() {
