@@ -339,21 +339,22 @@ function combineSources(saldoRows, consolidatedRows, zeradoRows) {
   return products;
 }
 
-function weightedDemand({ sales15, sales30, mdv, params }) {
+function weightedDemand({ sales15, sales30, salesLong, mdv, params }) {
   const shortPeriod = Math.max(1, Number(params?.shortPeriod) || 15);
-  const longPeriod = Math.max(shortPeriod, Number(params?.longPeriod) || 30);
+  const longPeriod = Math.max(shortPeriod, Number(params?.longPeriod) || 90);
   const components = [
-    { value: sales15 === null ? null : sales15 / shortPeriod, weight: 0.5 },
-    { value: sales30 === null ? null : sales30 / longPeriod, weight: 0.3 },
-    { value: mdv, weight: 0.2 },
+    { value: sales15 === null ? null : sales15 / shortPeriod, weight: 0.2, label: `${shortPeriod}D SALDO` },
+    { value: sales30 === null ? null : sales30 / 30, weight: 0.1, label: '30D SALDO' },
+    { value: salesLong === null ? null : salesLong / longPeriod, weight: 0.35, label: `${longPeriod}D consolidado` },
+    { value: mdv, weight: 0.35, label: 'MDV consolidado' },
   ].filter((component) => component.value !== null && Number.isFinite(component.value));
 
   if (!components.length) return { demand: 0, source: 'Sem histórico de venda' };
   const totalWeight = components.reduce((sum, component) => sum + component.weight, 0);
   const blended = components.reduce((sum, component) => sum + component.value * component.weight, 0) / totalWeight;
-  const recent = components[0]?.value ?? 0;
+  const recent = sales15 !== null && Number.isFinite(sales15) ? sales15 / shortPeriod : components[0]?.value ?? 0;
   const demand = recent > blended * 1.35 ? Math.min(recent, blended * 1.5) : blended;
-  const source = components.length === 3 ? `${shortPeriod}D + ${longPeriod}D + MDV` : `${components.length} fonte${components.length > 1 ? 's' : ''} de venda`;
+  const source = components.map((component) => component.label).join(' + ');
   return { demand: Math.max(0, demand), source };
 }
 
@@ -383,21 +384,24 @@ function calculateProduct(product, params) {
   const demandInfo = weightedDemand({
     sales15: saldo?.sales15 ?? zerado?.sales15 ?? null,
     sales30: saldo?.sales30 ?? zerado?.sales30 ?? null,
+    salesLong: consolidated?.salesQty ?? null,
     mdv: consolidated?.mdv ?? saldo?.mdv ?? null,
     params,
   });
 
-  const storeStock = numberOrZero(consolidated?.storeStock ?? saldo?.storeStock ?? zerado?.storeStock);
-  const pending = Math.max(0, numberOrZero(consolidated?.pending), numberOrZero(consolidated?.transit), numberOrZero(saldo?.orderedQty));
+  const storeStock = numberOrZero(saldo?.storeStock ?? zerado?.storeStock ?? consolidated?.storeStock);
+  const saldoOrder = numberOrZero(saldo?.orderedQty);
+  const consolidatedPending = numberOrZero(consolidated?.pending);
+  const transit = numberOrZero(consolidated?.transit);
+  const pending = Math.max(saldoOrder, consolidatedPending) + transit;
   const inboundDetails = {
-    pendente: numberOrZero(consolidated?.pending),
-    transito: numberOrZero(consolidated?.transit),
-    pedidoLoja: numberOrZero(saldo?.orderedQty),
+    pendente: consolidatedPending,
+    transito: transit,
+    pedidoLoja: saldoOrder,
   };
-  const depositMeasures = [saldo?.centralStock ?? null, saldo?.balance ?? null, consolidated?.depositStock ?? null];
-  const depotAvailable = minConservative(depositMeasures);
-  const depotStock = saldo?.centralStock ?? consolidated?.depositStock ?? null;
-  const depotBalance = saldo?.balance ?? null;
+  const depotStock = consolidated?.depositStock ?? saldo?.centralStock ?? zerado?.centralStock ?? null;
+  const depotBalance = saldo?.balance ?? zerado?.balance ?? null;
+  const depotAvailable = depotBalance ?? minConservative([saldo?.centralStock ?? null, zerado?.centralStock ?? null, consolidated?.depositStock ?? null]);
   const projected = storeStock + pending;
   const coverage = demandInfo.demand > 0 ? projected / demandInfo.demand : (consolidated?.coverage ?? saldo?.coverage ?? null);
   const needed = demandInfo.demand > 0 ? Math.max(0, Math.ceil(demandInfo.demand * params.targetDays - projected)) : 0;
@@ -412,10 +416,10 @@ function calculateProduct(product, params) {
   if (!saldo) warningSet.add('Sem registro na aba SALDO: disponibilidade do depósito pode estar incompleta.');
   if (!consolidated) warningSet.add('Sem histórico no consolidado: demanda pode estar incompleta.');
   if (!product.code || product.code === 'Sem código') warningSet.add('Produto sem código: não liberar pedido automático.');
-  if (ratioDifference(depositMeasures)) warningSet.add('Divergência entre estoque central, saldo e/ou depósito: usado menor valor como limite.');
+  if (depotBalance !== null && depotStock !== null && depotBalance > depotStock) warningSet.add('Saldo disponível maior que o estoque cheio do depósito: conferir a extração do ERP.');
   if (consolidated && saldo && coverage !== null && consolidated.coverage !== null && Math.abs(coverage - consolidated.coverage) > Math.max(4, consolidated.coverage * 0.5)) warningSet.add('Cobertura recalculada diverge da informada no consolidado.');
   if (demandInfo.demand === 0 && Boolean(zerado)) warningSet.add('Ruptura sem venda conhecida: item mantido para revisão, sem pedido automático.');
-  if (pending > 0) warningSet.add(`Entrada considerada de ${pending.toFixed(0)} un. (maior valor entre pendência/trânsito/pedido).`);
+  if (pending > 0) warningSet.add(`Entrada considerada de ${pending.toFixed(0)} un. (pedido/pendência mais trânsito).`);
   if (pack > 1 && availableUnits > 0 && roundedPack === 0) warningSet.add(`Sugestão menor que o múltiplo de ${pack} un.; confirmar se o depósito pode separar unidades.`);
 
   let priority = 'NO_ACTION';
@@ -577,6 +581,84 @@ function panelMappings(workbook) {
   })).filter((mapping) => rawText(mapping.saleCode) && rawText(mapping.stockCode) && codeExact(mapping.saleCode) !== codeExact(mapping.stockCode));
 }
 
+function rowsWithHeader(workbook, sheetName, requiredHeaders) {
+  const worksheet = workbook.Sheets[sheetName];
+  if (!worksheet) return [];
+  const matrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null, raw: true });
+  const headerIndex = matrix.findIndex((row) => requiredHeaders.every((expected) => row.some((value) => normalizeHeader(value) === expected)));
+  return headerIndex < 0 ? [] : XLSX.utils.sheet_to_json(worksheet, { range: headerIndex, defval: null, raw: true });
+}
+
+function isBaseWorkbook(workbook, fileName) {
+  const fileKey = normalizeHeader(fileName);
+  return fileKey.includes('dashboardpedidos') || Boolean(actualSheetName(workbook, '06_BASE_ANALITICA'));
+}
+
+function baseMetadataRows(workbook) {
+  const metadata = [];
+  const analyticalName = actualSheetName(workbook, '06_BASE_ANALITICA');
+  if (analyticalName) {
+    rowsWithHeader(workbook, analyticalName, ['chave', 'produto', 'setor', 'giro']).forEach((row) => {
+      const code = getField(row, ['chave']);
+      const description = getField(row, ['produto']);
+      metadata.push({
+        source: '06_BASE_ANALITICA',
+        code: rawText(code),
+        codeExact: codeExact(code),
+        codeNumeric: codeNumeric(code),
+        description: rawText(description),
+        descriptionKey: normalizeText(description),
+        sector: rawText(getField(row, ['setor'])),
+        giro: rawText(getField(row, ['giro', 'classificacaodogiro'])),
+        category: rawText(getField(row, ['pasta', 'categoria'])),
+      });
+    });
+  }
+
+  const baseName = actualSheetName(workbook, 'BASE');
+  if (baseName) {
+    rowsWithHeader(workbook, baseName, ['codigo', 'descricaocompleta']).forEach((row) => {
+      const code = getField(row, ['codigo']);
+      const description = getField(row, ['descricaocompleta']);
+      metadata.push({
+        source: 'BASE',
+        code: rawText(code),
+        codeExact: codeExact(code),
+        codeNumeric: codeNumeric(code),
+        description: rawText(description),
+        descriptionKey: normalizeText(description),
+        sector: rawText(getField(row, ['consolidado', 'setor'])),
+        giro: '',
+        category: rawText(getField(row, ['pasta'])),
+      });
+    });
+  }
+  return metadata.filter((row) => row.codeExact || row.codeNumeric || row.descriptionKey);
+}
+
+function applyBaseMetadata(products, metadataRows) {
+  if (!metadataRows.length) return 0;
+  const index = buildIndex(metadataRows);
+  let matched = 0;
+  products.forEach((product) => {
+    const keys = productKeys(product);
+    const candidates = [
+      ...[...keys.exactCodes].flatMap((key) => index.exact.get(key) ?? []),
+      ...[...keys.numericCodes].flatMap((key) => index.numeric.get(key) ?? []),
+      ...[...keys.descriptions].flatMap((key) => index.description.get(key) ?? []),
+    ];
+    const unique = [...new Set(candidates)];
+    const metadata = unique.length ? metadataRows[unique[0]] : null;
+    if (!metadata) return;
+    product.sector = metadata.sector || product.sector || '';
+    product.giro = metadata.giro || product.giro || '';
+    if (product.paste === 'Sem pasta' && metadata.category) product.paste = metadata.category;
+    product.baseMatch = metadata.source;
+    matched += 1;
+  });
+  return matched;
+}
+
 export function createManualProduct(form, params) {
   const code = rawText(form.code);
   const description = rawText(form.description) || 'Produto cadastrado manualmente';
@@ -613,9 +695,17 @@ export async function importWorkbook(file, params, mappings = []) {
   const sourceRows = { SALDO: [], consolidado3meses: [], Zerado: [] };
   const importedMappings = [];
   const recognizedSheets = new Set();
+  const baseMetadata = [];
+  const baseFiles = [];
   for (const currentFile of files) {
     const data = await currentFile.arrayBuffer();
     const workbook = readErpWorkbook(data, currentFile.name);
+    if (isBaseWorkbook(workbook, currentFile.name)) {
+      baseFiles.push(currentFile.name);
+      baseMetadata.push(...baseMetadataRows(workbook));
+      importedMappings.push(...panelMappings(workbook));
+      continue;
+    }
     const validation = validateWorkbook(workbook, currentFile.name);
     validation.recognized.forEach((source) => {
       recognizedSheets.add(source);
@@ -626,6 +716,7 @@ export async function importWorkbook(file, params, mappings = []) {
   }
 
   if (!Object.values(sourceRows).some((rows) => rows.length)) {
+    if (baseFiles.length) throw new Error('A base histórica foi reconhecida, mas nenhuma atualização do ERP foi selecionada. Adicione consolidado3meses, SALDO e Zerado para montar o pedido atual.');
     throw new Error('Os arquivos foram reconhecidos, mas não há registros de produtos para processar.');
   }
 
@@ -634,6 +725,7 @@ export async function importWorkbook(file, params, mappings = []) {
   const zeradoRows = sourceRows.Zerado;
   const rawProducts = combineSources(saldoRows, consolidatedRows, zeradoRows);
   const appliedMappings = applyProductMappings(rawProducts, [...importedMappings, ...(mappings ?? [])]);
+  const baseMatched = applyBaseMetadata(rawProducts, baseMetadata);
   const products = rawProducts
     .map((product) => calculateProduct(product, params))
     .sort((a, b) => {
@@ -655,9 +747,12 @@ export async function importWorkbook(file, params, mappings = []) {
     matched: products.filter((product) => product.hasSaldo && product.hasConsolidated).length,
     descriptionMatches: products.filter((product) => product.matchMethods.includes('descrição')).length,
     mappedProducts: appliedMappings.length,
+    baseRows: baseMetadata.length,
+    baseMatched,
+    baseFiles,
   };
 
-  return { products, stores: stores.length ? stores : [DEFAULT_STORE], categories, stats, mappings: appliedMappings, fileName: files.map((currentFile) => currentFile.name).join(' + '), fileNames: files.map((currentFile) => currentFile.name), importedAt: new Date() };
+  return { products, stores: stores.length ? stores : [DEFAULT_STORE], categories, stats, mappings: appliedMappings, fileName: files.map((currentFile) => currentFile.name).join(' + '), fileNames: files.map((currentFile) => currentFile.name), baseFileNames: baseFiles, importedAt: new Date() };
 }
 
 export function recalculateProducts(products, params) {
@@ -667,6 +762,9 @@ export function recalculateProducts(products, params) {
     description: product.description,
     store: product.store,
     paste: product.paste,
+    sector: product.sector,
+    giro: product.giro,
+    baseMatch: product.baseMatch,
     sources: product.sources,
     matchMethods: product.matchMethods,
     manualForm: product.manualForm,

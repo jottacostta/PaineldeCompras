@@ -101,6 +101,7 @@ export function saveHistory(history) {
 
 function sampleFromProduct(product, params, importId) {
   const shortSource = product.sources?.SALDO ?? product.sources?.consolidado3meses ?? {};
+  const consolidatedSource = product.sources?.consolidado3meses ?? {};
   const sample = {
     sampleId: `${importId}:${productKey(product)}`,
     snapshotId: importId,
@@ -111,13 +112,16 @@ function sampleFromProduct(product, params, importId) {
       description: product.description || null,
       store: product.store || null,
       category: product.paste || null,
+      sector: product.sector || null,
+      giro: product.giro || null,
       stockBaseCode: product.code || null,
       aliases: (product.aliases ?? []).map((alias) => ({ code: alias.code ?? null, description: alias.description ?? null })),
     },
     features: {
       salesShortUnits: numberOrNull(shortSource.sales15),
       salesLongUnits: numberOrNull(shortSource.sales30),
-      mdvDaily: numberOrNull(shortSource.mdv ?? product.demandDaily),
+      salesThreeMonthsUnits: numberOrNull(consolidatedSource.salesQty),
+      mdvDaily: numberOrNull(consolidatedSource.mdv ?? shortSource.mdv ?? product.demandDaily),
       demandDaily: numberOrNull(product.demandDaily),
       demandSource: product.demandSource || null,
       storeStockUnits: numberOrNull(product.storeStock),
@@ -137,6 +141,7 @@ function sampleFromProduct(product, params, importId) {
       hasSaldo: Boolean(product.hasSaldo),
       hasConsolidated: Boolean(product.hasConsolidated),
       hasZerado: Boolean(product.hasZerado),
+      baseMetadataMatched: Boolean(product.baseMatch),
       mappedAliasCount: (product.aliases ?? []).length,
       warningCount: (product.warnings ?? []).length,
       reconciliationSources: numberOrNull(product.reconciliation),

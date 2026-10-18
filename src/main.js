@@ -37,7 +37,7 @@ const state = {
   currentSnapshotId: null,
   importedAt: null,
   stats: null,
-  params: { shortPeriod: 15, longPeriod: 30, targetDays: 7, maxDays: 14 },
+  params: { shortPeriod: 15, longPeriod: 90, targetDays: 7, maxDays: 14 },
   mappings: loadStoredMappings(),
   appliedMappings: [],
   manualEntries: loadStoredManualEntries(),
@@ -239,7 +239,7 @@ function getFilteredProducts() {
     if (state.filters.priority !== 'ALL' && product.priority !== state.filters.priority) return false;
     if (state.filters.availability === 'AVAILABLE' && product.depotAvailable <= 0) return false;
     if (state.filters.availability === 'ZERO' && product.depotAvailable > 0) return false;
-    if (state.filters.category !== 'ALL' && product.paste !== state.filters.category) return false;
+    if (state.filters.category !== 'ALL' && (product.sector || product.paste) !== state.filters.category) return false;
     if (query && !`${product.code} ${product.description}`.toUpperCase().includes(query)) return false;
     return true;
   });
@@ -292,7 +292,7 @@ function updatePriorityList() {
     const warning = product.priority === 'BLOCKED' ? `<span class="micro-alert">saldo indisponível</span>` : '';
     return `<article class="priority-item">
       <label class="check-wrap"><input type="checkbox" data-select-id="${escapeHtml(product.id)}" ${selected} ${quantity <= 0 ? 'disabled' : ''}/><span></span></label>
-      <div class="priority-main"><div class="priority-topline">${priorityBadge(product.priority)}${warning}<span>${escapeHtml(product.code)}</span></div><strong>${escapeHtml(product.description)}</strong><small>${escapeHtml(product.paste)} · cobertura ${formatCoverage(product.coverage)}</small></div>
+      <div class="priority-main"><div class="priority-topline">${priorityBadge(product.priority)}${warning}<span>${escapeHtml(product.code)}</span></div><strong>${escapeHtml(product.description)}</strong><small>${escapeHtml(product.sector || product.paste)} · ${escapeHtml(product.giro || 'giro não classificado')} · cobertura ${formatCoverage(product.coverage)}</small></div>
       <div class="priority-quantity"><strong>${formatNumber.format(quantity)}</strong><span>un. sugeridas</span></div>
     </article>`;
   }).join('');
@@ -346,7 +346,7 @@ function renderTable() {
     return `<tr data-product-id="${escapeHtml(product.id)}">
       <td class="checkbox-cell"><label class="check-wrap"><input type="checkbox" data-select-id="${escapeHtml(product.id)}" ${selected} ${disabled}/><span></span></label></td>
       <td>${priorityBadge(product.priority)}</td>
-      <td><div class="product-cell"><strong>${escapeHtml(product.description)}</strong><span>${escapeHtml(product.code)} ${sourceTag}</span></div></td>
+      <td><div class="product-cell"><strong>${escapeHtml(product.description)}</strong><span>${escapeHtml(product.code)} · ${escapeHtml(product.sector || product.paste)} · ${escapeHtml(product.giro || 'giro não classificado')} ${sourceTag}</span></div></td>
       <td>${escapeHtml(product.store)}</td>
       <td>${formatDecimal.format(product.demandDaily)}<small> un./dia</small></td>
       <td>${formatNumber.format(product.storeStock)}</td>
@@ -364,7 +364,7 @@ function syncStoreSelect() {
 }
 
 function syncCategorySelect() {
-  el.categoryFilter.innerHTML = `<option value="ALL">Todas as pastas</option>${state.categories.map((category) => `<option value="${escapeHtml(category)}" ${category === state.filters.category ? 'selected' : ''}>${escapeHtml(category)}</option>`).join('')}`;
+  el.categoryFilter.innerHTML = `<option value="ALL">Todos os setores</option>${state.categories.map((category) => `<option value="${escapeHtml(category)}" ${category === state.filters.category ? 'selected' : ''}>${escapeHtml(category)}</option>`).join('')}`;
 }
 
 function syncProductLists() {
@@ -427,7 +427,7 @@ async function handleFile(fileInput) {
   try {
     const result = await importWorkbook(files, state.params, state.mappings);
     state.products = applyManualProducts(result.products);
-    state.categories = [...new Set(state.products.map((product) => product.paste).filter(Boolean))].sort();
+    state.categories = [...new Set(state.products.map((product) => product.sector || product.paste).filter(Boolean))].sort();
     state.stores = [...new Set(state.products.map((product) => product.store).filter(Boolean))].sort();
     state.stats = result.stats;
     state.appliedMappings = result.mappings ?? [];
@@ -459,7 +459,8 @@ async function handleFile(fileInput) {
     el.appView.classList.remove('hidden');
     renderAll();
     const missing = result.stats.missingSheets?.length ? ` Fontes ausentes nesta carga: ${result.stats.missingSheets.join(', ')}.` : '';
-    showToast(`${formatNumber.format(state.products.length)} produtos processados. ${formatNumber.format(state.appliedMappings.length)} vínculos de estoque aplicados.${missing}`, missing ? 'warning' : 'success');
+    const baseInfo = result.stats.baseMatched ? ` ${formatNumber.format(result.stats.baseMatched)} produtos receberam setor/giro da base histórica.` : '';
+    showToast(`${formatNumber.format(state.products.length)} produtos processados. ${formatNumber.format(state.appliedMappings.length)} vínculos de estoque aplicados.${baseInfo}${missing}`, missing ? 'warning' : 'success');
   } catch (error) {
     console.error(error);
     showToast(error?.message || 'Não foi possível ler a planilha. Confira a estrutura do arquivo.', 'error');
@@ -471,7 +472,7 @@ async function handleFile(fileInput) {
 
 function recalculate() {
   const shortPeriod = Math.max(1, Number(el.shortPeriodInput.value) || 15);
-  const longPeriod = Math.max(shortPeriod, Number(el.longPeriodInput.value) || 30);
+  const longPeriod = Math.max(shortPeriod, Number(el.longPeriodInput.value) || 90);
   const targetDays = Math.max(1, Number(el.targetDaysInput.value) || 7);
   const maxDays = Math.max(targetDays, Number(el.maxDaysInput.value) || 14);
   state.params = { shortPeriod, longPeriod, targetDays, maxDays };
@@ -521,7 +522,7 @@ function addManualProduct(event) {
   const product = createManualProduct(form, state.params);
   state.products = [...state.products, product];
   state.history = recordManualProduct(state.history, form, product);
-  state.categories = [...new Set(state.products.map((item) => item.paste).filter(Boolean))].sort();
+  state.categories = [...new Set(state.products.map((item) => item.sector || item.paste).filter(Boolean))].sort();
   state.stores = [...new Set(state.products.map((item) => item.store).filter(Boolean))].sort();
   syncStoreSelect();
   syncCategorySelect();

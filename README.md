@@ -1,6 +1,6 @@
 # Painel de Compras
 
-Gerenciador web de pedidos de loja para supermercados. O sistema importa localmente um Excel do ERP com as abas `SALDO`, `consolidado3meses` e `Zerado`, ou os três arquivos separados exportados pelo ERP, calcula prioridades de abastecimento e exporta uma fila de pedido em CSV.
+Gerenciador web de pedidos de loja para supermercados. O sistema usa uma base histórica/cadastral com setor e classificação de giro e combina suas informações com as três atualizações operacionais do ERP: `consolidado3meses`, `SALDO` e `Zerado`. Depois calcula prioridades de abastecimento e exporta uma fila de pedido em CSV.
 
 Aplicação publicada: <https://jottacostta.github.io/PaineldeCompras/>
 
@@ -16,6 +16,7 @@ Snapshot anterior: [`versoes_anteriores/PaineldeCompras_v1_antes_importacao_arqu
 - Histórico local de decisões para aprendizado futuro, exportável pelo botão **Histórico ML**.
 - Importação de históricos JSON de outros computadores ou períodos, com união sem duplicação.
 - Reconhecimento de `Saldo.xlsx`, `consolidado3meses.xls` tabulado e `zerado.xlsx` selecionados juntos ou individualmente, com aviso quando a carga estiver parcial.
+- Uso opcional de `vendastrimestrelaticios_dashboard_pedidos.xlsx` como base histórica: setor e giro vêm dela, enquanto estoque, saldo, loja, pendências e vendas atuais vêm dos três arquivos do ERP selecionados na mesma carga.
 
 ## Histórico de aprendizado
 
