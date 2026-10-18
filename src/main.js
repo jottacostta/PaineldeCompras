@@ -37,7 +37,7 @@ const state = {
   currentSnapshotId: null,
   importedAt: null,
   stats: null,
-  params: { shortPeriod: 15, longPeriod: 30, criticalDays: 2, targetDays: 7, maxDays: 14 },
+  params: { shortPeriod: 15, longPeriod: 30, criticalDays: 3, targetDays: 7, maxDays: 14 },
   mappings: loadStoredMappings(),
   appliedMappings: [],
   manualEntries: loadStoredManualEntries(),
@@ -271,7 +271,7 @@ function updateKpis() {
   el.kpi.rupture.textContent = formatNumber.format(rupture.length);
   el.kpi.ruptureText.textContent = rupture.length ? `${formatNumber.format(rupture.reduce((sum, product) => sum + product.suggested, 0))} un. para atender` : 'sem ruptura atendível';
   el.kpi.risk.textContent = formatNumber.format(risk.length);
-  el.kpi.riskText.textContent = risk.length ? 'cobertura projetada até 2 dias' : 'nenhum risco imediato';
+  el.kpi.riskText.textContent = risk.length ? 'cobertura projetada de 0 a 3 dias' : 'nenhum risco imediato';
   el.kpi.suggested.textContent = formatNumber.format(suggested);
   el.kpi.suggestedText.textContent = `${formatNumber.format(selectedProductCount())} itens selecionados para exportação`;
   el.kpi.blocked.textContent = formatNumber.format(blocked.length);
@@ -309,11 +309,9 @@ function updatePriorityList() {
 function updateCoverageBars() {
   const scoped = state.products.filter((product) => state.filters.store === 'ALL' || product.store === state.filters.store);
   const groups = [
-    { label: 'Ruptura / 0 dia', test: (product) => product.coverage !== null && product.coverage <= 0, tone: 'danger' },
-    { label: 'Até 2 dias · crítico', test: (product) => product.coverage !== null && product.coverage > 0 && product.coverage <= state.params.criticalDays, tone: 'danger' },
-    { label: 'De 2 a 7 dias · abaixo da meta', test: (product) => product.coverage !== null && product.coverage > state.params.criticalDays && product.coverage < state.params.targetDays, tone: 'warning' },
-    { label: 'De 7 a 14 dias · faixa segura', test: (product) => product.coverage !== null && product.coverage >= state.params.targetDays && product.coverage <= state.params.maxDays, tone: 'teal' },
-    { label: 'Acima de 14 dias · excesso', test: (product) => product.coverage !== null && product.coverage > state.params.maxDays, tone: 'neutral' },
+    { label: '0 a 3 dias · crítico', test: (product) => product.coverage !== null && product.coverage <= state.params.criticalDays, tone: 'danger' },
+    { label: '4 a 6 dias · atenção', test: (product) => product.coverage !== null && product.coverage > state.params.criticalDays && product.coverage <= 6, tone: 'warning' },
+    { label: 'Acima de 6 dias · meta', test: (product) => product.coverage !== null && product.coverage > 6, tone: 'teal' },
   ];
   const largest = Math.max(1, ...groups.map((group) => scoped.filter(group.test).length));
   el.coverageBars.innerHTML = groups.map((group) => {
@@ -321,7 +319,7 @@ function updateCoverageBars() {
     const width = Math.max(count ? 4 : 0, (count / largest) * 100);
     return `<div class="coverage-row"><div class="coverage-label"><span>${escapeHtml(group.label)}</span><strong>${formatNumber.format(count)}</strong></div><div class="coverage-track"><span class="coverage-fill fill-${group.tone}" style="width:${width}%"></span></div></div>`;
   }).join('');
-  el.conservativeNote.textContent = `Meta: ${state.params.targetDays}d · Máximo: ${state.params.maxDays}d`;
+  el.conservativeNote.textContent = 'Crítico: 0–3d · Atenção: 4–6d · Meta: >6d';
 }
 
 function renderTable() {
@@ -481,7 +479,7 @@ async function handleFile(fileInput) {
 function recalculate() {
   const targetDays = Math.max(1, Number(el.targetDaysInput.value) || 7);
   const maxDays = Math.max(targetDays, Number(el.maxDaysInput.value) || 14);
-  state.params = { shortPeriod: 15, longPeriod: 30, criticalDays: 2, targetDays, maxDays };
+  state.params = { shortPeriod: 15, longPeriod: 30, criticalDays: 3, targetDays, maxDays };
   el.targetDaysInput.value = targetDays;
   el.maxDaysInput.value = maxDays;
   const selectedBefore = new Set(state.selectedIds);
@@ -498,7 +496,7 @@ function recalculate() {
   updateCurrentDecisions(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments);
   persistHistory();
   renderAll();
-  showToast(`Fila recalculada usando MDV30 (Qtde Venda 3M ÷ Dias Venda), risco em 2 dias, meta de ${targetDays} dias e teto de ${maxDays} dias.`, 'success');
+  showToast(`Fila recalculada usando MDV30 (Qtde Venda 3M ÷ Dias Venda), crítico em 0–3 dias, atenção em 4–6 dias e meta acima de 6 dias.`, 'success');
 }
 
 function openProductDialog() {

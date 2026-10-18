@@ -140,7 +140,7 @@ function sampleFromProduct(product, params, importId) {
       packUnits: numberOrNull(product.pack),
       targetDays: numberOrNull(params.targetDays),
       maxDays: numberOrNull(params.maxDays),
-      criticalDays: numberOrNull(params.criticalDays ?? 2),
+      criticalDays: numberOrNull(params.criticalDays ?? 3),
       shortPeriodDays: numberOrNull(params.shortPeriod),
       longPeriodDays: numberOrNull(params.longPeriod),
       isRupture: Boolean(product.isRupture),

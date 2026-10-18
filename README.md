@@ -17,7 +17,7 @@ Snapshot anterior: [`versoes_anteriores/PaineldeCompras_v1_antes_importacao_arqu
 - Importação de históricos JSON de outros computadores ou períodos, com união sem duplicação.
 - Reconhecimento de `Saldo.xlsx`, `consolidado3meses.xls` tabulado e `zerado.xlsx` selecionados juntos ou individualmente, com aviso quando a carga estiver parcial.
 - Venda/dia operacional calculada somente pelo `MDV30` do `consolidado3meses`: `(Qtde Venda 3M ÷ 4) ÷ (Dias Venda 3M ÷ 4)`. O campo `MDV (110)` do ERP não é usado; o `SALDO` continua fornecendo estoque da loja, saldo e pedidos.
-- Cobertura operacional com três referências: risco crítico até 2 dias, meta de 7 dias e limite máximo de 14 dias, com pedido limitado ao saldo disponível do depósito.
+- Cobertura operacional em três faixas: 0 a 3 dias crítico, 4 a 6 dias atenção e acima de 6 dias meta. O pedido continua limitado ao saldo disponível do depósito e a uma cobertura máxima de 14 dias.
 - Uso opcional de `vendastrimestrelaticios_dashboard_pedidos.xlsx` como base histórica: setor e giro vêm dela, enquanto estoque, saldo, loja, pendências e vendas atuais vêm dos três arquivos do ERP selecionados na mesma carga.
 
 ## Histórico de aprendizado

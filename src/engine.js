@@ -5,9 +5,9 @@ const DEFAULT_STORE = 'Loja do arquivo';
 
 export const PRIORITY_META = {
   P0: { label: 'P0 · Ruptura com venda', tone: 'danger', rank: 0 },
-  P1: { label: 'P1 · Risco imediato', tone: 'danger', rank: 1 },
-  P2: { label: 'P2 · Abaixo do alvo', tone: 'warning', rank: 2 },
-  P3: { label: 'P3 · Giro alto', tone: 'teal', rank: 3 },
+  P1: { label: 'P1 · 0 a 3 dias', tone: 'danger', rank: 1 },
+  P2: { label: 'P2 · 4 a 6 dias', tone: 'warning', rank: 2 },
+  P3: { label: 'P3 · Acima de 6 dias', tone: 'teal', rank: 3 },
   BLOCKED: { label: 'Bloqueado', tone: 'dark', rank: 4 },
   NO_ACTION: { label: 'Sem pedido', tone: 'neutral', rank: 5 },
 };
@@ -367,6 +367,7 @@ function calculateProduct(product, params) {
   const depotStock = consolidated?.depositStock ?? saldo?.centralStock ?? zerado?.centralStock ?? null;
   const depotBalance = saldo?.balance ?? zerado?.balance ?? null;
   const depotAvailable = depotBalance ?? minConservative([saldo?.centralStock ?? null, zerado?.centralStock ?? null, consolidated?.depositStock ?? null]);
+  const criticalDays = Math.max(1, Number(params?.criticalDays) || 3);
   const projected = storeStock + pending;
   const coverage = demandInfo.demand > 0 ? projected / demandInfo.demand : null;
   const needed = demandInfo.demand > 0 ? Math.max(0, Math.ceil(demandInfo.demand * params.targetDays - projected)) : 0;
@@ -395,10 +396,10 @@ function calculateProduct(product, params) {
   } else if (hasDemand && isRupture && depotAvailable > 0) {
     priority = 'P0';
     reason = 'Ruptura com venda: atender primeiro enquanto há saldo no depósito.';
-  } else if (hasDemand && coverage !== null && coverage <= 2 && suggested > 0) {
+  } else if (hasDemand && coverage !== null && coverage <= criticalDays && suggested > 0) {
     priority = 'P1';
-    reason = 'Cobertura projetada de até 2 dias: risco imediato de falta.';
-  } else if (hasDemand && coverage !== null && coverage < params.targetDays && suggested > 0) {
+    reason = `Cobertura projetada de até ${criticalDays} dias: risco imediato de falta.`;
+  } else if (hasDemand && coverage !== null && coverage > criticalDays && coverage <= 6 && suggested > 0) {
     priority = 'P2';
     reason = `Cobertura abaixo da meta de ${params.targetDays} dias.`;
   } else if (hasDemand && suggested > 0) {
