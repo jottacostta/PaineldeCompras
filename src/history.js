@@ -298,6 +298,62 @@ export function historyJson(history) {
   return JSON.stringify(payload, null, 2);
 }
 
+export function mergeImportedHistory(currentHistory, jsonText) {
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    throw new Error('O arquivo não é um JSON válido.');
+  }
+  if (!parsed || parsed.format !== HISTORY_FORMAT) {
+    throw new Error('Este JSON não é um histórico do Orquestra compatível.');
+  }
+  if (Number(parsed.schemaVersion) > HISTORY_SCHEMA_VERSION) {
+    throw new Error('Este histórico foi criado por uma versão mais nova do sistema.');
+  }
+
+  const incoming = normalizeHistory(parsed);
+  const merged = normalizeHistory(currentHistory);
+  const existingImports = new Map(merged.imports.map((entry) => [entry.id, entry]));
+  incoming.imports.forEach((entry) => {
+    if (!existingImports.has(entry.id)) existingImports.set(entry.id, entry);
+  });
+  merged.imports = [...existingImports.values()].sort((a, b) => String(a.importedAt).localeCompare(String(b.importedAt)));
+
+  const eventKeys = new Set(merged.events.map((event) => `${event.type}:${event.at}:${event.snapshotId || ''}`));
+  incoming.events.forEach((event) => {
+    const key = `${event.type}:${event.at}:${event.snapshotId || ''}`;
+    if (!eventKeys.has(key)) {
+      merged.events.push(event);
+      eventKeys.add(key);
+    }
+  });
+  const mappingKeys = new Set(merged.mappings.map((mapping) => `${mapping.saleCode}:${mapping.stockCode}`));
+  incoming.mappings.forEach((mapping) => {
+    const key = `${mapping.saleCode}:${mapping.stockCode}`;
+    if (!mappingKeys.has(key)) {
+      merged.mappings.push(mapping);
+      mappingKeys.add(key);
+    }
+  });
+  const manualKeys = new Set(merged.manualProducts.map((product) => `${product.code}:${product.store}`));
+  incoming.manualProducts.forEach((product) => {
+    const key = `${product.code}:${product.store}`;
+    if (!manualKeys.has(key)) {
+      merged.manualProducts.push(product);
+      manualKeys.add(key);
+    }
+  });
+  merged.events.push({
+    type: 'history_imported',
+    at: nowIso(),
+    importedSnapshots: incoming.imports.length,
+    importedSamples: incoming.imports.reduce((total, entry) => total + (entry.samples?.length || 0), 0),
+  });
+  merged.updatedAt = nowIso();
+  return merged;
+}
+
 export function downloadHistory(history) {
   const blob = new Blob([historyJson(history)], { type: 'application/json;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

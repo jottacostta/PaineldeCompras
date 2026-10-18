@@ -11,6 +11,7 @@ import {
   downloadHistory,
   historySummary,
   loadHistory,
+  mergeImportedHistory,
   recordEvent,
   recordExport,
   recordImport,
@@ -101,6 +102,8 @@ const el = {
   closeHistoryActionButton: document.querySelector('#closeHistoryActionButton'),
   downloadHistoryButton: document.querySelector('#downloadHistoryButton'),
   clearHistoryButton: document.querySelector('#clearHistoryButton'),
+  importHistoryButton: document.querySelector('#importHistoryButton'),
+  historyFileInput: document.querySelector('#historyFileInput'),
   historyImports: document.querySelector('#historyImports'),
   historySamples: document.querySelector('#historySamples'),
   historyObserved: document.querySelector('#historyObserved'),
@@ -162,6 +165,23 @@ function refreshHistoryDialog() {
 function openHistoryDialog() {
   refreshHistoryDialog();
   el.historyDialog.showModal();
+}
+
+async function importHistoryFile(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const before = historySummary(state.history);
+    state.history = mergeImportedHistory(state.history, text);
+    persistHistory();
+    const after = historySummary(state.history);
+    refreshHistoryDialog();
+    showToast(`${formatNumber.format(Math.max(0, after.samples - before.samples))} amostras de histórico importadas para a base de aprendizado.`, 'success');
+  } catch (error) {
+    showToast(error?.message || 'Não foi possível importar este histórico JSON.', 'error');
+  } finally {
+    el.historyFileInput.value = '';
+  }
 }
 
 function escapeHtml(value) {
@@ -631,6 +651,8 @@ el.newImportButton.addEventListener('click', () => el.fileInput.click());
 el.historyButton.addEventListener('click', openHistoryDialog);
 el.closeHistoryButton.addEventListener('click', () => el.historyDialog.close());
 el.closeHistoryActionButton.addEventListener('click', () => el.historyDialog.close());
+el.importHistoryButton.addEventListener('click', () => el.historyFileInput.click());
+el.historyFileInput.addEventListener('change', (event) => importHistoryFile(event.target.files?.[0]));
 el.downloadHistoryButton.addEventListener('click', () => {
   downloadHistory(state.history);
   showToast('Histórico JSON gerado para download.', 'success');
