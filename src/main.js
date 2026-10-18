@@ -37,7 +37,7 @@ const state = {
   currentSnapshotId: null,
   importedAt: null,
   stats: null,
-  params: { shortPeriod: 15, longPeriod: 90, targetDays: 7, maxDays: 14 },
+  params: { shortPeriod: 15, longPeriod: 30, criticalDays: 2, targetDays: 7, maxDays: 14 },
   mappings: loadStoredMappings(),
   appliedMappings: [],
   manualEntries: loadStoredManualEntries(),
@@ -312,10 +312,10 @@ function updateCoverageBars() {
   const scoped = state.products.filter((product) => state.filters.store === 'ALL' || product.store === state.filters.store);
   const groups = [
     { label: 'Ruptura / 0 dia', test: (product) => product.coverage !== null && product.coverage <= 0, tone: 'danger' },
-    { label: 'Até 2 dias', test: (product) => product.coverage !== null && product.coverage > 0 && product.coverage <= 2, tone: 'danger' },
-    { label: `Até ${state.params.targetDays} dias`, test: (product) => product.coverage !== null && product.coverage > 2 && product.coverage < state.params.targetDays, tone: 'warning' },
-    { label: 'Dentro da meta', test: (product) => product.coverage !== null && product.coverage >= state.params.targetDays && product.coverage <= state.params.maxDays, tone: 'teal' },
-    { label: 'Acima do limite', test: (product) => product.coverage !== null && product.coverage > state.params.maxDays, tone: 'neutral' },
+    { label: 'Até 2 dias · crítico', test: (product) => product.coverage !== null && product.coverage > 0 && product.coverage <= state.params.criticalDays, tone: 'danger' },
+    { label: 'De 2 a 7 dias · abaixo da meta', test: (product) => product.coverage !== null && product.coverage > state.params.criticalDays && product.coverage < state.params.targetDays, tone: 'warning' },
+    { label: 'De 7 a 14 dias · faixa segura', test: (product) => product.coverage !== null && product.coverage >= state.params.targetDays && product.coverage <= state.params.maxDays, tone: 'teal' },
+    { label: 'Acima de 14 dias · excesso', test: (product) => product.coverage !== null && product.coverage > state.params.maxDays, tone: 'neutral' },
   ];
   const largest = Math.max(1, ...groups.map((group) => scoped.filter(group.test).length));
   el.coverageBars.innerHTML = groups.map((group) => {
@@ -482,10 +482,11 @@ async function handleFile(fileInput) {
 
 function recalculate() {
   const shortPeriod = Math.max(1, Number(el.shortPeriodInput.value) || 15);
-  const longPeriod = Math.max(shortPeriod, Number(el.longPeriodInput.value) || 90);
+  const longPeriod = Math.max(shortPeriod, 30, Number(el.longPeriodInput.value) || 30);
+  const criticalDays = 2;
   const targetDays = Math.max(1, Number(el.targetDaysInput.value) || 7);
   const maxDays = Math.max(targetDays, Number(el.maxDaysInput.value) || 14);
-  state.params = { shortPeriod, longPeriod, targetDays, maxDays };
+  state.params = { shortPeriod, longPeriod, criticalDays, targetDays, maxDays };
   el.shortPeriodInput.value = shortPeriod;
   el.longPeriodInput.value = longPeriod;
   el.targetDaysInput.value = targetDays;
@@ -504,7 +505,7 @@ function recalculate() {
   updateCurrentDecisions(state.history, state.currentSnapshotId, state.products, state.selectedIds, state.adjustments);
   persistHistory();
   renderAll();
-  showToast(`Fila recalculada usando venda de ${shortPeriod}D/${longPeriod}D, meta de ${targetDays} dias e teto de ${maxDays} dias.`, 'success');
+  showToast(`Fila recalculada usando SALDO de ${shortPeriod}D/${longPeriod}D, risco em ${criticalDays} dias, meta de ${targetDays} dias e teto de ${maxDays} dias.`, 'success');
 }
 
 function openProductDialog() {

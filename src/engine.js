@@ -310,14 +310,12 @@ function combineSources(saldoRows, consolidatedRows, zeradoRows) {
   return products;
 }
 
-function weightedDemand({ sales15, sales30, salesLong, mdv, params }) {
+function weightedDemand({ sales15, sales30, params }) {
   const shortPeriod = Math.max(1, Number(params?.shortPeriod) || 15);
-  const longPeriod = Math.max(shortPeriod, Number(params?.longPeriod) || 90);
+  const saldoPeriod = Math.max(shortPeriod, 30, Number(params?.longPeriod) || 30);
   const components = [
-    { value: sales15 === null ? null : sales15 / shortPeriod, weight: 0.2, label: `${shortPeriod}D SALDO` },
-    { value: sales30 === null ? null : sales30 / 30, weight: 0.1, label: '30D SALDO' },
-    { value: salesLong === null ? null : salesLong / longPeriod, weight: 0.35, label: `${longPeriod}D consolidado` },
-    { value: mdv, weight: 0.35, label: 'MDV consolidado' },
+    { value: sales15 === null ? null : sales15 / shortPeriod, weight: 0.6, label: `${shortPeriod}D SALDO` },
+    { value: sales30 === null ? null : sales30 / saldoPeriod, weight: 0.4, label: `${saldoPeriod}D SALDO` },
   ].filter((component) => component.value !== null && Number.isFinite(component.value));
 
   if (!components.length) return { demand: 0, source: 'Sem histórico de venda' };
@@ -355,8 +353,6 @@ function calculateProduct(product, params) {
   const demandInfo = weightedDemand({
     sales15: saldo?.sales15 ?? zerado?.sales15 ?? null,
     sales30: saldo?.sales30 ?? zerado?.sales30 ?? null,
-    salesLong: consolidated?.salesQty ?? null,
-    mdv: consolidated?.mdv ?? saldo?.mdv ?? null,
     params,
   });
 
@@ -373,6 +369,7 @@ function calculateProduct(product, params) {
   const depotStock = consolidated?.depositStock ?? saldo?.centralStock ?? zerado?.centralStock ?? null;
   const depotBalance = saldo?.balance ?? zerado?.balance ?? null;
   const depotAvailable = depotBalance ?? minConservative([saldo?.centralStock ?? null, zerado?.centralStock ?? null, consolidated?.depositStock ?? null]);
+  const criticalDays = Math.max(1, Number(params?.criticalDays) || 2);
   const projected = storeStock + pending;
   const coverage = demandInfo.demand > 0 ? projected / demandInfo.demand : (consolidated?.coverage ?? saldo?.coverage ?? null);
   const needed = demandInfo.demand > 0 ? Math.max(0, Math.ceil(demandInfo.demand * params.targetDays - projected)) : 0;
@@ -401,9 +398,9 @@ function calculateProduct(product, params) {
   } else if (hasDemand && isRupture && depotAvailable > 0) {
     priority = 'P0';
     reason = 'Ruptura com venda: atender primeiro enquanto há saldo no depósito.';
-  } else if (hasDemand && coverage !== null && coverage <= 2 && suggested > 0) {
+  } else if (hasDemand && coverage !== null && coverage <= criticalDays && suggested > 0) {
     priority = 'P1';
-    reason = 'Cobertura projetada de até 2 dias: risco imediato de falta.';
+    reason = `Cobertura projetada de até ${criticalDays} dias: risco imediato de falta.`;
   } else if (hasDemand && coverage !== null && coverage < params.targetDays && suggested > 0) {
     priority = 'P2';
     reason = `Cobertura abaixo da meta de ${params.targetDays} dias.`;

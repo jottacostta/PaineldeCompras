@@ -9,7 +9,7 @@
       content="Gerenciador de pedidos de loja com leitura local de planilhas ERP."
     />
     <title>Orquestra | Pedidos de Loja</title>
-    <script type="module" crossorigin src="/assets/index-XIxxOlN_.js"></script>
+    <script type="module" crossorigin src="/assets/index-DmjUwdSu.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BW5o9N8w.css">
   </head>
   <body>
@@ -85,7 +85,7 @@
                 <p>Envie a base histórica opcional junto das três atualizações; também aceitamos um Excel completo com as abas:</p>
                 <div class="sheet-list">
                   <div><span>0</span><strong>BASE HISTÓRICA</strong><small>setor e classificação de giro do dashboard anterior</small></div>
-                  <div><span>1</span><strong>consolidado3meses</strong><small>venda de 3 meses, MDV e estoque cheio do depósito</small></div>
+                  <div><span>1</span><strong>consolidado3meses</strong><small>histórico trimestral, MDV e estoque cheio do depósito; não define a venda/dia operacional</small></div>
                   <div><span>2</span><strong>SALDO</strong><small>saldo disponível, estoque da loja e pedidos pendentes/impressos</small></div>
                   <div><span>3</span><strong>Zerado</strong><small>itens sem estoque na loja com saldo no depósito</small></div>
                 </div>
@@ -94,8 +94,8 @@
 
             <div class="method-strip">
               <div><span class="method-number">01</span><p><strong>Conciliamos produtos</strong><br />pela descrição normalizada; o código fica apenas como referência visual.</p></div>
-              <div><span class="method-number">02</span><p><strong>Projetamos cobertura</strong><br />com venda recente, estoque da loja e entradas já registradas.</p></div>
-              <div><span class="method-number">03</span><p><strong>Limitamos o pedido</strong><br />pelo saldo conservador do depósito para evitar promessas sem atendimento.</p></div>
+              <div><span class="method-number">02</span><p><strong>Projetamos cobertura</strong><br />com venda SALDO de 15/30 dias, estoque da loja e entradas já registradas.</p></div>
+              <div><span class="method-number">03</span><p><strong>Limitamos o pedido</strong><br />ao saldo do depósito e à faixa operacional de 2, 7 e 14 dias.</p></div>
             </div>
           </section>
 
@@ -118,10 +118,11 @@
 
             <section class="settings-strip" aria-label="Parâmetros de abastecimento">
               <div class="settings-label"><span aria-hidden="true">⚙</span><div><strong>Parâmetros do pedido</strong><small>Aplicados em toda a fila atual</small></div></div>
-              <label>Venda curta <input id="shortPeriodInput" type="number" min="1" max="365" value="15" /><small>dias</small></label>
-              <label>Venda longa <input id="longPeriodInput" type="number" min="1" max="730" value="90" /><small>dias</small></label>
-              <label>Dias-alvo <input id="targetDaysInput" type="number" min="1" max="30" value="7" /></label>
-              <label>Cobertura máxima <input id="maxDaysInput" type="number" min="2" max="60" value="14" /></label>
+              <label>Venda curta — SALDO <input id="shortPeriodInput" type="number" min="1" max="365" value="15" /><small>dias</small></label>
+              <label>Venda longa — SALDO <input id="longPeriodInput" type="number" min="30" max="730" value="30" /><small>dias</small></label>
+              <label>Risco crítico <input id="criticalDaysInput" type="number" value="2" disabled /><small>dias</small></label>
+              <label>Meta de cobertura <input id="targetDaysInput" type="number" min="1" max="30" value="7" /><small>dias</small></label>
+              <label>Cobertura máxima <input id="maxDaysInput" type="number" min="2" max="60" value="14" /><small>dias</small></label>
               <button class="button button-ghost" id="recalculateButton" type="button">Recalcular</button>
             </section>
 
@@ -169,7 +170,7 @@
                       <th>Prioridade</th>
                       <th>Produto</th>
                       <th>Loja</th>
-                      <th>Venda/dia</th>
+                      <th>Venda/dia — SALDO</th>
                       <th>Estoque loja</th>
                       <th>Entradas</th>
                       <th>Disp. depósito</th>

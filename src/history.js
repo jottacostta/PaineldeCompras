@@ -119,6 +119,8 @@ function sampleFromProduct(product, params, importId) {
     },
     features: {
       salesShortUnits: numberOrNull(shortSource.sales15),
+      sales15Units: numberOrNull(shortSource.sales15),
+      sales30Units: numberOrNull(shortSource.sales30),
       salesLongUnits: numberOrNull(shortSource.sales30),
       salesThreeMonthsUnits: numberOrNull(consolidatedSource.salesQty),
       mdvDaily: numberOrNull(consolidatedSource.mdv ?? shortSource.mdv ?? product.demandDaily),
@@ -135,6 +137,7 @@ function sampleFromProduct(product, params, importId) {
       packUnits: numberOrNull(product.pack),
       targetDays: numberOrNull(params.targetDays),
       maxDays: numberOrNull(params.maxDays),
+      criticalDays: numberOrNull(params.criticalDays ?? 2),
       shortPeriodDays: numberOrNull(params.shortPeriod),
       longPeriodDays: numberOrNull(params.longPeriod),
       isRupture: Boolean(product.isRupture),

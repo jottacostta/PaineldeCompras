@@ -4,6 +4,8 @@
 - [x] Conciliar registros exclusivamente pela descrição normalizada, indicando itens sem correspondência ou com informações incompletas; o código não participa da união.
 - [x] Permitir cadastrar produtos novos manualmente, com persistência local no navegador, sem duplicar códigos importados.
 - [x] Permitir configurar os períodos curto e longo de venda usados na demanda diária e recalcular a fila.
+- [x] Calcular a venda/dia operacional exclusivamente no `SALDO`, combinando venda média de 15 dias e venda média de 30 dias; manter o `consolidado3meses` como histórico trimestral e estoque cheio do depósito.
+- [x] Trabalhar com cobertura crítica de 2 dias, meta de 7 dias e limite máximo de 14 dias, limitando o pedido ao saldo disponível do depósito.
 - [x] Permitir vincular um produto de venda a um produto-base de estoque, somando a venda ao estoque único sem duplicar ruptura ou saldo.
 - [x] Reconhecer automaticamente vínculos provenientes da aba opcional `PAINEL`, coluna `Pai`.
 - [x] Exibir um dashboard com estoque de depósito, saldo, venda, cobertura, pendências, trânsito, rupturas e recomendações de pedido.
