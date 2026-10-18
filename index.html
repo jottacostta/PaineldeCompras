@@ -60,17 +60,18 @@
               <p class="eyebrow">CENTRAL DE ABASTECIMENTO</p>
               <h1>Decida o pedido da loja com o estoque que o depósito realmente pode atender.</h1>
               <p>
-                Importe a planilha do ERP. Cruzamos <strong>SALDO</strong>, <strong>consolidado3meses</strong> e
-                <strong>Zerado</strong> para priorizar rupturas, proteger a cobertura e montar sua fila final.
+                Importe uma planilha completa do ERP ou selecione os arquivos separados. Cruzamos
+                <strong>SALDO</strong>, <strong>consolidado3meses</strong> e <strong>Zerado</strong> para priorizar
+                rupturas, proteger a cobertura e montar sua fila final.
               </p>
             </div>
 
             <div class="import-grid">
               <label class="upload-card" for="fileInput" id="uploadCard">
-                <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" hidden />
+                <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
                 <div class="upload-icon" aria-hidden="true">⇧</div>
-                <strong>Importar arquivo do ERP</strong>
-                <span>Arraste um Excel aqui ou clique para selecionar</span>
+                <strong>Importar arquivos do ERP</strong>
+                <span>Arraste os arquivos aqui ou clique para selecionar um ou mais</span>
                 <small>Formatos aceitos: .xlsx, .xls e .xlsm</small>
               </label>
 
@@ -79,7 +80,7 @@
                   <span class="status-dot"></span>
                   <strong>Estrutura esperada</strong>
                 </div>
-                <p>A importação valida automaticamente as três abas abaixo:</p>
+                <p>Você pode enviar um único Excel com as três abas ou os arquivos separados:</p>
                 <div class="sheet-list">
                   <div><span>1</span><strong>SALDO</strong><small>estoque central, saldo e pedido de loja</small></div>
                   <div><span>2</span><strong>consolidado3meses</strong><small>venda, cobertura, pendências e trânsito</small></div>
