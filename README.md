@@ -42,3 +42,12 @@ A aplicação roda na porta `3000`. Para validar a build:
 ```bash
 pnpm build
 ```
+
+
+## Publicação no GitHub Pages
+
+O deploy é feito pelo workflow `.github/workflows/pages.yml` após push na branch `main` ou execução manual.
+
+**Configuração inicial obrigatória:** antes da primeira publicação, acesse **Settings → Pages** neste repositório e selecione **Build and deployment → Source → GitHub Actions**. O `GITHUB_TOKEN` usado pelo workflow não tem permissão para criar/habilitar o site Pages automaticamente; por isso, o workflow não tenta executar essa operação. Depois da configuração inicial, o workflow constrói o aplicativo, envia o artefato e publica o site.
+
+A URL esperada é <https://jottacostta.github.io/PaineldeCompras/>. Considere uma publicação concluída somente quando o job **Deploy to GitHub Pages** terminar com sucesso e a URL responder com o aplicativo.

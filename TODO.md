@@ -15,3 +15,7 @@
 - [x] Registrar automaticamente importações, parâmetros, variáveis dos produtos, decisões do comprador, vínculos, cadastros e exportações em histórico local estruturado.
 - [x] Permitir baixar o histórico em JSON com amostras de treinamento e campos de observação futura para venda, ruptura, aceitação e avaria.
 - [x] Permitir importar históricos JSON de outros computadores/períodos, unir os registros sem duplicação e persistir o resultado no `localStorage`.
+
+- [ ] Configurar uma vez **Settings → Pages → Build and deployment → Source → GitHub Actions**; o workflow não consegue criar o site Pages com o `GITHUB_TOKEN` padrão.
+- [ ] Validar que o workflow de publicação conclua os jobs de build e deploy e que a URL pública abra o aplicativo.
+- [x] Remover a tentativa de habilitar Pages por `enablement: true` no workflow e documentar o pré-requisito manual.
