@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta
+      name="description"
+      content="Gerenciador de pedidos de loja com leitura local de planilhas ERP."
+    />
+    <title>Orquestra | Pedidos de Loja</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegação principal">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">O</div>
+          <div>
+            <strong>Orquestra</strong>
+            <span>Pedidos de loja</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item is-active" type="button" data-view="dashboard">
+            <span aria-hidden="true">▦</span> Painel
+          </button>
+          <button class="nav-item" type="button" data-view="orders">
+            <span aria-hidden="true">⌁</span> Fila de pedidos
+            <span class="nav-count" id="queueNavCount">0</span>
+          </button>
+          <button class="nav-item" type="button" data-view="exceptions">
+            <span aria-hidden="true">!</span> Alertas
+            <span class="nav-count nav-count-alert" id="alertNavCount">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="privacy-card">
+            <span class="privacy-icon" aria-hidden="true">⌂</span>
+            <p><strong>Processamento local</strong><br />A planilha é lida neste navegador e não é armazenada.</p>
+          </div>
+          <button class="text-button" id="openRulesButton" type="button">Como calculamos o pedido?</button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumb"><span>Operação</span><span>/</span><strong>Pedidos de loja</strong></div>
+          <div class="topbar-actions">
+            <span class="connection-status"><i></i> Pronto para importar</span>
+            <button class="button button-secondary" id="newImportButton" type="button">Nova importação</button>
+          </div>
+        </header>
+
+        <section class="workspace">
+          <section id="importView" class="import-view">
+            <div class="intro-copy">
+              <p class="eyebrow">CENTRAL DE ABASTECIMENTO</p>
+              <h1>Decida o pedido da loja com o estoque que o depósito realmente pode atender.</h1>
+              <p>
+                Importe a planilha do ERP. Cruzamos <strong>SALDO</strong>, <strong>consolidado3meses</strong> e
+                <strong>Zerado</strong> para priorizar rupturas, proteger a cobertura e montar sua fila final.
+              </p>
+            </div>
+
+            <div class="import-grid">
+              <label class="upload-card" for="fileInput" id="uploadCard">
+                <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" hidden />
+                <div class="upload-icon" aria-hidden="true">⇧</div>
+                <strong>Importar arquivo do ERP</strong>
+                <span>Arraste um Excel aqui ou clique para selecionar</span>
+                <small>Formatos aceitos: .xlsx, .xls e .xlsm</small>
+              </label>
+
+              <div class="requirements-card">
+                <div class="requirements-head">
+                  <span class="status-dot"></span>
+                  <strong>Estrutura esperada</strong>
+                </div>
+                <p>A importação valida automaticamente as três abas abaixo:</p>
+                <div class="sheet-list">
+                  <div><span>1</span><strong>SALDO</strong><small>estoque central, saldo e pedido de loja</small></div>
+                  <div><span>2</span><strong>consolidado3meses</strong><small>venda, cobertura, pendências e trânsito</small></div>
+                  <div><span>3</span><strong>Zerado</strong><small>itens em ruptura no ERP</small></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="method-strip">
+              <div><span class="method-number">01</span><p><strong>Conciliamos produtos</strong><br />por código; descrição entra como apoio quando não há código confiável.</p></div>
+              <div><span class="method-number">02</span><p><strong>Projetamos cobertura</strong><br />com venda recente, estoque da loja e entradas já registradas.</p></div>
+              <div><span class="method-number">03</span><p><strong>Limitamos o pedido</strong><br />pelo saldo conservador do depósito para evitar promessas sem atendimento.</p></div>
+            </div>
+          </section>
+
+          <section id="appView" class="app-view hidden" aria-live="polite">
+            <div class="page-heading">
+              <div>
+                <p class="eyebrow" id="importMeta">IMPORTAÇÃO ERP</p>
+                <h1>Pedido de loja sob controle</h1>
+                <p id="pageSubtitle">Revise prioridades, ajuste quantidades e exporte uma fila conferida.</p>
+              </div>
+              <div class="heading-actions">
+                <label class="store-control">Loja
+                  <select id="storeSelect" aria-label="Selecionar loja"></select>
+                </label>
+                <button class="button button-secondary" id="addProductButton" type="button">Cadastrar produto</button>
+                <button class="button button-secondary" id="linkProductButton" type="button">Vincular estoque</button>
+                <button class="button button-primary" id="exportButton" type="button" disabled>Exportar pedido</button>
+              </div>
+            </div>
+
+            <section class="settings-strip" aria-label="Parâmetros de abastecimento">
+              <div class="settings-label"><span aria-hidden="true">⚙</span><div><strong>Parâmetros do pedido</strong><small>Aplicados em toda a fila atual</small></div></div>
+              <label>Venda curta <input id="shortPeriodInput" type="number" min="1" max="365" value="15" /><small>dias</small></label>
+              <label>Venda longa <input id="longPeriodInput" type="number" min="1" max="730" value="30" /><small>dias</small></label>
+              <label>Dias-alvo <input id="targetDaysInput" type="number" min="1" max="30" value="7" /></label>
+              <label>Cobertura máxima <input id="maxDaysInput" type="number" min="2" max="60" value="14" /></label>
+              <button class="button button-ghost" id="recalculateButton" type="button">Recalcular</button>
+            </section>
+
+            <section class="kpi-grid" aria-label="Indicadores principais">
+              <article class="kpi-card kpi-danger"><span>Ruptura com venda</span><strong id="kpiRupture">0</strong><small id="kpiRuptureText">aguardando importação</small></article>
+              <article class="kpi-card kpi-warning"><span>Risco até 2 dias</span><strong id="kpiRisk">0</strong><small id="kpiRiskText">aguardando importação</small></article>
+              <article class="kpi-card kpi-teal"><span>Unidades sugeridas</span><strong id="kpiSuggested">0</strong><small id="kpiSuggestedText">aguardando importação</small></article>
+              <article class="kpi-card kpi-dark"><span>Saldo sem atendimento</span><strong id="kpiBlocked">0</strong><small id="kpiBlockedText">aguardando importação</small></article>
+              <article class="kpi-card kpi-neutral"><span>Itens conciliados</span><strong id="kpiReconciled">0%</strong><small id="kpiReconciledText">aguardando importação</small></article>
+            </section>
+
+            <section class="overview-grid">
+              <article class="panel main-panel">
+                <div class="panel-heading">
+                  <div><p class="eyebrow">DECISÃO IMEDIATA</p><h2>Prioridades de abastecimento</h2></div>
+                  <button class="text-button" type="button" data-quick-filter="urgent">Ver fila completa</button>
+                </div>
+                <div id="priorityList" class="priority-list"></div>
+              </article>
+
+              <article class="panel coverage-panel">
+                <div class="panel-heading"><div><p class="eyebrow">COBERTURA</p><h2>Mapa da operação</h2></div></div>
+                <div id="coverageBars" class="coverage-bars"></div>
+                <div class="coverage-note"><span>Limite conservador</span><strong id="conservativeNote">—</strong></div>
+              </article>
+            </section>
+
+            <section class="panel filters-panel">
+              <div class="filters-head">
+                <div><p class="eyebrow">FILA DE DECISÃO</p><h2>Produtos para pedido</h2></div>
+                <div class="table-total" id="tableTotal">0 itens</div>
+              </div>
+              <div class="filters-row">
+                <label class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar por código ou produto" /></label>
+                <label><span>Prioridade</span><select id="priorityFilter"><option value="ALL">Todas</option><option value="P0">P0 · Ruptura com venda</option><option value="P1">P1 · Até 2 dias</option><option value="P2">P2 · Abaixo do alvo</option><option value="P3">P3 · Giro alto</option><option value="BLOCKED">Bloqueado</option><option value="NO_ACTION">Sem pedido</option></select></label>
+                <label><span>Disponibilidade</span><select id="availabilityFilter"><option value="ALL">Todos os saldos</option><option value="AVAILABLE">Com saldo no depósito</option><option value="ZERO">Sem saldo no depósito</option></select></label>
+                <label><span>Pasta / categoria</span><select id="categoryFilter"><option value="ALL">Todas as pastas</option></select></label>
+                <button class="button button-ghost" id="clearFiltersButton" type="button">Limpar filtros</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th class="checkbox-cell"><input id="selectAllInput" type="checkbox" aria-label="Selecionar todos os itens visíveis" /></th>
+                      <th>Prioridade</th>
+                      <th>Produto</th>
+                      <th>Loja</th>
+                      <th>Venda/dia</th>
+                      <th>Estoque loja</th>
+                      <th>Entradas</th>
+                      <th>Disp. depósito</th>
+                      <th>Cobertura</th>
+                      <th>Pedido</th>
+                      <th>Motivo / alerta</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersTableBody"></tbody>
+                </table>
+              </div>
+              <div class="table-footer"><span id="paginationText">—</span><div class="pagination-actions"><button class="icon-button" id="prevPageButton" type="button" aria-label="Página anterior">←</button><button class="icon-button" id="nextPageButton" type="button" aria-label="Próxima página">→</button></div></div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+    <dialog id="rulesDialog" class="rules-dialog">
+      <div class="dialog-header"><div><p class="eyebrow">REGRA DE DECISÃO</p><h2>Pedido explicável para o comprador</h2></div><button class="icon-button" id="closeRulesButton" type="button" aria-label="Fechar">×</button></div>
+      <div class="rules-content">
+        <p>O sistema não cria pedido apenas porque o estoque está baixo. Ele calcula a demanda diária pelas duas janelas de venda configuradas e pela média diária disponível; projeta o estoque com o que já está na loja e em entrada; e limita a sugestão ao saldo conservador do depósito.</p>
+        <div class="rule-grid"><div><strong>P0</strong><span>Ruptura com venda e disponibilidade para atender.</span></div><div><strong>P1</strong><span>Cobertura de até 2 dias ou risco imediato de falta.</span></div><div><strong>P2</strong><span>Cobertura abaixo do alvo definido.</span></div><div><strong>Bloqueado</strong><span>Há necessidade, mas o depósito não tem saldo liberado.</span></div></div>
+        <p class="fine-print">Entradas pendentes e trânsito são tratados de forma conservadora: usamos o maior valor informado, não a soma, para reduzir risco de contar a mesma mercadoria duas vezes.</p>
+      </div>
+    </dialog>
+
+    <dialog id="productDialog" class="form-dialog">
+      <div class="dialog-header"><div><p class="eyebrow">CADASTRO MANUAL</p><h2>Adicionar produto à fila</h2></div><button class="icon-button" id="closeProductButton" type="button" aria-label="Fechar">×</button></div>
+      <form id="productForm" class="dialog-form">
+        <p class="form-help">Use este cadastro para um produto novo que ainda não apareceu no consolidado. Na próxima importação, o ERP continua sendo a fonte principal.</p>
+        <div class="form-grid">
+          <label>Código ERP<input name="code" required placeholder="Ex.: 2095257" /></label>
+          <label>Descrição<input name="description" required placeholder="Nome do produto" /></label>
+          <label>Loja<input name="store" placeholder="Ex.: Loja 01" /></label>
+          <label>Pasta / categoria<input name="paste" placeholder="Ex.: Laticínios" /></label>
+          <label>Fator de embalagem<input name="pack" type="number" min="1" value="1" /></label>
+          <label>Estoque loja<input name="storeStock" type="number" min="0" value="0" /></label>
+          <label>Saldo depósito<input name="depotStock" type="number" min="0" value="0" /></label>
+          <label>Saldo disponível<input name="balance" type="number" min="0" value="0" /></label>
+          <label>Venda curta<input name="sales15" type="number" min="0" value="0" /></label>
+          <label>Venda longa<input name="sales30" type="number" min="0" value="0" /></label>
+          <label>MDV diário<input name="mdv" type="number" min="0" step="0.01" value="0" /></label>
+          <label>Pendente / trânsito<input name="pending" type="number" min="0" value="0" /></label>
+        </div>
+        <label class="form-check"><input name="rupture" type="checkbox" /> Marcar como ruptura no ERP</label>
+        <div class="dialog-actions"><button class="button button-ghost" id="cancelProductButton" type="button">Cancelar</button><button class="button button-primary" type="submit">Adicionar ao painel</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="mappingDialog" class="form-dialog">
+      <div class="dialog-header"><div><p class="eyebrow">ESTOQUE ÚNICO</p><h2>Vincular produto de venda ao estoque-base</h2></div><button class="icon-button" id="closeMappingButton" type="button" aria-label="Fechar">×</button></div>
+      <form id="mappingForm" class="dialog-form">
+        <p class="form-help">Exemplo: a venda de <strong>QUE MUC YEMA FATIADO kg</strong> será somada à demanda do estoque de <strong>QUE MUC YEMA FRACIONADO kg</strong>. O painel mantém o produto-base como estoque e registra o alias de venda.</p>
+        <div class="form-grid mapping-grid">
+          <label>Produto de venda — código<input name="saleCode" list="productCodeList" required placeholder="Código ou descrição" /></label>
+          <label>Produto de venda — descrição<input name="saleDescription" list="productDescriptionList" placeholder="Descrição para conferência" /></label>
+          <label>Produto-base de estoque — código<input name="stockCode" list="productCodeList" required placeholder="Código ou descrição" /></label>
+          <label>Produto-base de estoque — descrição<input name="stockDescription" list="productDescriptionList" placeholder="Descrição para conferência" /></label>
+        </div>
+        <datalist id="productCodeList"></datalist><datalist id="productDescriptionList"></datalist>
+        <div id="mappingList" class="mapping-list"></div>
+        <div class="dialog-actions"><button class="button button-ghost" id="cancelMappingButton" type="button">Fechar</button><button class="button button-primary" type="submit">Salvar vínculo</button></div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
