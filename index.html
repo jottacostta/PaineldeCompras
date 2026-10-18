@@ -156,7 +156,7 @@
                 <label class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar por código ou produto" /></label>
                 <label><span>Prioridade</span><select id="priorityFilter"><option value="ALL">Todas</option><option value="P0">P0 · Ruptura com venda</option><option value="P1">P1 · 0 a 3 dias</option><option value="P2">P2 · 4 a 6 dias</option><option value="P3">P3 · Acima de 6 dias</option><option value="BLOCKED">Bloqueado</option><option value="NO_ACTION">Sem pedido</option></select></label>
                 <label><span>Disponibilidade</span><select id="availabilityFilter"><option value="ALL">Todos os saldos</option><option value="AVAILABLE">Com saldo no depósito</option><option value="ZERO">Sem saldo no depósito</option></select></label>
-                <label><span>Setor</span><select id="categoryFilter"><option value="ALL">Todos os setores</option></select></label>
+                <label><span>Setor (selecione vários)</span><select id="categoryFilter" multiple size="1" aria-label="Filtrar por um ou mais setores" title="Selecione um ou mais setores; deixe todos desmarcados para exibir todos"></select><small class="filter-help">Selecione mais de um setor quando necessário.</small></label>
                 <button class="button button-ghost" id="clearFiltersButton" type="button">Limpar filtros</button>
               </div>
               <div class="table-wrap">

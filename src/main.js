@@ -45,7 +45,7 @@ const state = {
   adjustments: new Map(),
   currentView: 'dashboard',
   currentPage: 1,
-  filters: { search: '', priority: 'ALL', availability: 'ALL', category: 'ALL', store: 'ALL' },
+  filters: { search: '', priority: 'ALL', availability: 'ALL', category: [], store: 'ALL' },
 };
 
 const el = {
@@ -247,7 +247,7 @@ function getFilteredProducts() {
     if (state.filters.priority !== 'ALL' && product.priority !== state.filters.priority) return false;
     if (state.filters.availability === 'AVAILABLE' && product.depotAvailable <= 0) return false;
     if (state.filters.availability === 'ZERO' && product.depotAvailable > 0) return false;
-    if (state.filters.category !== 'ALL' && (product.sector || product.paste) !== state.filters.category) return false;
+    if (state.filters.category.length && !state.filters.category.includes(product.sector || product.paste)) return false;
     if (query && !`${product.code} ${product.description}`.toUpperCase().includes(query)) return false;
     return true;
   });
@@ -370,7 +370,7 @@ function syncStoreSelect() {
 }
 
 function syncCategorySelect() {
-  el.categoryFilter.innerHTML = `<option value="ALL">Todos os setores</option>${state.categories.map((category) => `<option value="${escapeHtml(category)}" ${category === state.filters.category ? 'selected' : ''}>${escapeHtml(category)}</option>`).join('')}`;
+  el.categoryFilter.innerHTML = `<option value="ALL" ${state.filters.category.length ? '' : 'selected'}>Todos os setores</option>${state.categories.map((category) => `<option value="${escapeHtml(category)}" ${state.filters.category.includes(category) ? 'selected' : ''}>${escapeHtml(category)}</option>`).join('')}`;
 }
 
 function syncProductLists() {
@@ -627,11 +627,11 @@ function clearFilters() {
   state.filters.search = '';
   state.filters.priority = 'ALL';
   state.filters.availability = 'ALL';
-  state.filters.category = 'ALL';
+  state.filters.category = [];
   el.searchInput.value = '';
   el.priorityFilter.value = 'ALL';
   el.availabilityFilter.value = 'ALL';
-  el.categoryFilter.value = 'ALL';
+  Array.from(el.categoryFilter.options).forEach((option) => { option.selected = option.value === 'ALL'; });
   state.currentPage = 1;
   renderAll();
 }
@@ -695,7 +695,19 @@ el.storeSelect.addEventListener('change', (event) => { state.filters.store = eve
 el.searchInput.addEventListener('input', (event) => { state.filters.search = event.target.value; state.currentPage = 1; renderTable(); });
 el.priorityFilter.addEventListener('change', (event) => { state.filters.priority = event.target.value; state.currentPage = 1; renderTable(); });
 el.availabilityFilter.addEventListener('change', (event) => { state.filters.availability = event.target.value; state.currentPage = 1; renderTable(); });
-el.categoryFilter.addEventListener('change', (event) => { state.filters.category = event.target.value; state.currentPage = 1; renderTable(); });
+el.categoryFilter.addEventListener('change', (event) => {
+  const selected = Array.from(event.target.selectedOptions, (option) => option.value).filter((value) => value !== 'ALL');
+  state.filters.category = selected;
+  if (selected.length) {
+    const allOption = Array.from(event.target.options).find((option) => option.value === 'ALL');
+    if (allOption) allOption.selected = false;
+  } else {
+    const allOption = Array.from(event.target.options).find((option) => option.value === 'ALL');
+    if (allOption) allOption.selected = true;
+  }
+  state.currentPage = 1;
+  renderTable();
+});
 el.clearFiltersButton.addEventListener('click', clearFilters);
 el.prevPageButton.addEventListener('click', () => { state.currentPage -= 1; renderTable(); });
 el.nextPageButton.addEventListener('click', () => { state.currentPage += 1; renderTable(); });
