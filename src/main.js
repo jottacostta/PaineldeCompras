@@ -27,6 +27,10 @@ const formatNumber = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }
 const formatDecimal = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const formatCurrency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
+function formatSalesUnits(value) {
+  return value === null || value === undefined ? '—' : formatDecimal.format(value);
+}
+
 const state = {
   products: [],
   categories: [],
@@ -338,7 +342,7 @@ function renderTable() {
   el.selectAllInput.indeterminate = visibleSelectable.some((product) => state.selectedIds.has(product.id)) && !el.selectAllInput.checked;
 
   if (!slice.length) {
-    el.ordersTableBody.innerHTML = '<tr><td colspan="11"><div class="table-empty"><strong>Nenhum produto atende aos filtros atuais.</strong><span>Limpe filtros ou importe outra planilha para continuar.</span></div></td></tr>';
+    el.ordersTableBody.innerHTML = '<tr><td colspan="13"><div class="table-empty"><strong>Nenhum produto atende aos filtros atuais.</strong><span>Limpe filtros ou importe outra planilha para continuar.</span></div></td></tr>';
     return;
   }
 
@@ -349,16 +353,19 @@ function renderTable() {
     const alerts = product.warnings.length ? `<span class="warning-dot" title="${escapeHtml(product.warnings.join(' · '))}">!</span>` : '';
     const sourceTag = product.isRupture ? '<span class="rupture-tag">ERP zerado</span>' : '';
     const reason = product.warnings[0] || product.reason;
+    const saldo = product.sources.SALDO ?? product.sources.Zerado ?? {};
     return `<tr data-product-id="${escapeHtml(product.id)}">
       <td class="checkbox-cell"><label class="check-wrap"><input type="checkbox" data-select-id="${escapeHtml(product.id)}" ${selected} ${disabled}/><span></span></label></td>
       <td>${priorityBadge(product.priority)}</td>
       <td><div class="product-cell"><strong>${escapeHtml(product.description)}</strong><span>${escapeHtml(product.code)} · ${escapeHtml(product.sector || product.paste)} · ${escapeHtml(product.giro || 'giro não classificado')} ${sourceTag}</span></div></td>
       <td>${escapeHtml(product.store)}</td>
-      <td>${formatDecimal.format(product.demandDaily)}<small> un./dia</small></td>
+      <td>${formatSalesUnits(saldo.sales15)}<small>un. em 15D</small></td>
+      <td>${formatSalesUnits(saldo.sales30)}<small>un. em 30D</small></td>
+      <td>${formatDecimal.format(product.demandDaily)}<small>un./dia · MDV30</small></td>
       <td>${formatNumber.format(product.storeStock)}</td>
       <td>${formatNumber.format(product.inbound)}</td>
       <td><strong class="${product.depotAvailable <= 0 ? 'number-zero' : ''}">${formatNumber.format(product.depotAvailable)}</strong><small>de ${formatNumber.format(product.depotStock ?? 0)}</small></td>
-      <td><span class="coverage-chip ${product.coverage !== null && product.coverage <= 2 ? 'coverage-low' : ''}">${formatCoverage(product.coverage)}</span></td>
+      <td><span class="coverage-chip ${product.coverage !== null && product.coverage <= state.params.criticalDays ? 'coverage-low' : ''}">${formatCoverage(product.coverage)}</span></td>
       <td><input class="qty-input" type="number" data-qty-id="${escapeHtml(product.id)}" min="0" step="${product.pack || 1}" value="${quantity}" ${product.priority === 'BLOCKED' ? 'disabled' : ''}/><small>múlt. ${formatNumber.format(product.pack || 1)}</small></td>
       <td><div class="reason-cell">${alerts}<span title="${escapeHtml(product.warnings.join(' · '))}">${escapeHtml(reason)}</span></div></td>
     </tr>`;
