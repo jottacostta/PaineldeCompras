@@ -12,7 +12,7 @@ Snapshot anterior: [`versoes_anteriores/PaineldeCompras_v1_antes_importacao_arqu
 - Conciliação exclusivamente pela descrição normalizada do produto; o código permanece apenas como referência visual.
 - Estoque único para produtos de venda ligados a produtos-base de produção, como `QUE MUC YEMA FATIADO kg` → `QUE MUC YEMA FRACIONADO kg`.
 - Cadastro manual de produtos e vínculo manual de estoque, persistidos localmente no navegador.
-- Períodos curto e longo de venda configuráveis.
+- Parâmetros de cálculo fixos e exibidos no painel: venda/dia pelo MDV30, faixa crítica de 0 a 3 dias, meta de 7 dias e teto de 14 dias.
 - Histórico local de decisões para aprendizado futuro, exportável pelo botão **Histórico ML**.
 - Importação de históricos JSON de outros computadores ou períodos, com união sem duplicação.
 - Reconhecimento de `Saldo.xlsx`, `consolidado3meses.xls` tabulado e `zerado.xlsx` selecionados juntos ou individualmente, com aviso quando a carga estiver parcial.
