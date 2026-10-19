@@ -1,1 +1,0 @@
-Base do repositório PaineldeCompras.

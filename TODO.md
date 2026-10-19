@@ -3,7 +3,7 @@
 - [x] Importar localmente um Excel completo ou arquivos ERP separados e identificar as fontes `SALDO`, `consolidado3meses` e `Zerado`.
 - [x] Conciliar registros exclusivamente pela descrição normalizada, indicando itens sem correspondência ou com informações incompletas; o código não participa da união.
 - [x] Permitir cadastrar produtos novos manualmente, com persistência local no navegador, sem duplicar códigos importados.
-- [x] Permitir configurar os períodos curto e longo de venda usados na demanda diária e recalcular a fila.
+- [x] Exibir os parâmetros de cálculo (MDV30, faixa crítica, meta de 7 dias e teto de 14 dias) e permitir recalcular a fila.
 - [x] Calcular a venda/dia operacional exclusivamente pelo `MDV30` calculado do `consolidado3meses` (`(Qtde Venda 3M ÷ 4) ÷ (Dias Venda 3M ÷ 4)`); não usar o `MDV (110)` do ERP, mantendo o `SALDO` para estoque da loja, saldo e pedidos.
 - [x] Trabalhar com cobertura de 0 a 3 dias como crítico, 4 a 6 dias como atenção e acima de 6 dias como meta, mantendo o teto de pedido em 14 dias e limitando ao saldo disponível do depósito.
 - [x] Exibir na fila de produtos para pedido as vendas de 15 dias e 30 dias do `SALDO`, junto com o MDV30 usado no cálculo.
@@ -21,8 +21,8 @@
 - [x] Permitir baixar o histórico em JSON com amostras de treinamento e campos de observação futura para venda, ruptura, aceitação e avaria.
 - [x] Permitir importar históricos JSON de outros computadores/períodos, unir os registros sem duplicação e persistir o resultado no `localStorage`.
 
-- [ ] Configurar uma vez **Settings → Pages → Build and deployment → Source → GitHub Actions**; o workflow não consegue criar o site Pages com o `GITHUB_TOKEN` padrão.
-- [ ] Validar que o workflow de publicação conclua os jobs de build e deploy e que a URL pública abra o aplicativo.
+- [x] Configurar uma vez **Settings → Pages → Build and deployment → Source → GitHub Actions**; o workflow não consegue criar o site Pages com o `GITHUB_TOKEN` padrão.
+- [x] Validar que o workflow de publicação conclua os jobs de build e deploy e que a URL pública abra o aplicativo.
 - [x] Remover a tentativa de habilitar Pages por `enablement: true` no workflow e documentar o pré-requisito manual.
 
 - [x] Permitir filtrar simultaneamente por múltiplos setores, mantendo Todos os setores quando nenhuma seleção estiver ativa.
