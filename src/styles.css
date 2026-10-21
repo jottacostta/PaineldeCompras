@@ -31,6 +31,11 @@
   --info:        #1A5FA8;
   --info-bg:     #E6EFF9;
 
+  /* Botão secundário — azul de contraste */
+  --btn-sec:     #1A8FE3;   /* azul médio — contrasta com #083D81 */
+  --btn-sec-bg:  #E8F4FD;   /* azul muito claro */
+  --btn-sec-hov: #0E72C4;   /* azul médio escuro — hover */
+
   /* Sombra / forma */
   --shadow-sm:   0 2px 6px rgba(0,0,0,0.07);
   --shadow:      0 6px 20px rgba(0,0,0,0.09);
@@ -189,8 +194,8 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   margin: 0 0 10px;
   padding: 4px 12px;
   border-radius: 20px;
-  background: var(--gold-light);
-  color: var(--gold-deep);
+  background: var(--btn-sec-bg);
+  color: var(--btn-sec);
   font: 700 11px var(--sans);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -321,10 +326,10 @@ select:focus, input:focus {
 }
 .button-primary:hover:not(:disabled) { background: #A80D27; border-color: #A80D27; }
 .button-secondary {
-  color: var(--brand-dark); background: var(--gold-light);
-  border-color: var(--gold);
+  color: var(--btn-sec); background: var(--btn-sec-bg);
+  border-color: var(--btn-sec);
 }
-.button-secondary:hover:not(:disabled) { background: #FFE8A3; }
+.button-secondary:hover:not(:disabled) { background: #D0E9F9; border-color: var(--btn-sec-hov); color: var(--btn-sec-hov); }
 .button-ghost {
   color: var(--ink-soft); border-color: var(--line); background: var(--paper);
 }
