@@ -1,18 +1,18 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    Painel Guanabara — identidade visual supermercados Guanabara
-   Sidebar: vermelho escuro. Primary: #C8102E. Accent: #F5A800.
+   Sidebar: azul escuro. Primary: #083D81. Accent: #FAF400.
    Display: Barlow Condensed (bold comercial). Body: Inter (dados, UI).
    ───────────────────────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   /* Marca */
-  --brand:       #C8102E;   /* vermelho Guanabara */
-  --brand-dark:  #8B0A1E;   /* vermelho escuro — sidebar */
-  --brand-deep:  #5A0614;   /* vermelho profundo — sidebar hover */
-  --gold:        #F5A800;   /* amarelo-ouro */
-  --gold-light:  #FFF4D6;   /* amarelo claro */
-  --gold-deep:   #CC8A00;   /* ouro escuro para texto */
+  --brand:       #083D81;   /* azul Guanabara */
+  --brand-dark:  #052968;   /* azul escuro — sidebar */
+  --brand-deep:  #031840;   /* azul profundo — sidebar hover */
+  --gold:        #FAF400;   /* amarelo Guanabara */
+  --gold-light:  #FFFDE0;   /* amarelo claro */
+  --gold-deep:   #C8BC00;   /* amarelo escuro para texto */
 
   /* Neutros */
   --ink:         #1C1C1E;
@@ -24,8 +24,8 @@
   /* Semânticas */
   --success:     #0D7A3E;
   --success-bg:  #E6F4ED;
-  --warn:        #CC8A00;
-  --warn-bg:     #FFF4D6;
+  --warn:        #C8BC00;
+  --warn-bg:     #FFFDE0;
   --danger:      #C8102E;
   --danger-bg:   #FDEAED;
   --info:        #1A5FA8;
