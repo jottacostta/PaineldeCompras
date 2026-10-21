@@ -126,26 +126,26 @@ const el = {
 
 function loadStoredManualEntries() {
   try {
-    return JSON.parse(localStorage.getItem('orquestra-manual-products') || '[]');
+    return JSON.parse(localStorage.getItem('suprimento-manual-products') || '[]');
   } catch {
     return [];
   }
 }
 
 function saveStoredManualEntries() {
-  localStorage.setItem('orquestra-manual-products', JSON.stringify(state.manualEntries));
+  localStorage.setItem('suprimento-manual-products', JSON.stringify(state.manualEntries));
 }
 
 function loadStoredMappings() {
   try {
-    return JSON.parse(localStorage.getItem('orquestra-product-mappings') || '[]');
+    return JSON.parse(localStorage.getItem('suprimento-product-mappings') || '[]');
   } catch {
     return [];
   }
 }
 
 function saveStoredMappings() {
-  localStorage.setItem('orquestra-product-mappings', JSON.stringify(state.mappings));
+  localStorage.setItem('suprimento-product-mappings', JSON.stringify(state.mappings));
 }
 
 function persistHistory() {
